@@ -5,7 +5,27 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Bootstrap demo</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-iYQeCzEYFbKjA/T2uDLTpkwGzCiq6soy8tYaI1GyVh/UjpbCx/TYkiZhlZB6+fzT" crossorigin="anonymous">
+    <link rel="stylesheet" href="node_modules/bootstrap/dist/css/*.css">
   </head>
+  <style>
+    /* @media (min-width: 768px) */
+        .bd-example {
+            --bd-example-padding: 1.5rem;
+            margin-right: 0;
+            margin-left: 0;
+            border-width: 1px;
+            border-top-left-radius: var(--bs-border-radius);
+            border-top-right-radius: var(--bs-border-radius);
+        }
+        .bd-example {
+            --bd-example-padding: 1rem;
+            position: relative;
+            padding: var(--bd-example-padding);
+            margin: 0 -1.5rem;
+            border: solid #dee2e6;
+            border-width: 1px 0;
+        }
+  </style>
     <body>
         <nav class="navbar navbar-expand-lg bg-light">
             <div class="container-fluid">
@@ -43,6 +63,42 @@
                 </div>
             </div>
         </nav>
+
+        <div class="bd-example">
+            <div class="row">
+              <div class="col-4">
+                <div id="list-example" class="list-group">
+                  <a class="list-group-item list-group-item-action active" href="#list-item-1">Item 1</a>
+                  <a class="list-group-item list-group-item-action" href="#list-item-2">Item 2</a>
+                  <a class="list-group-item list-group-item-action" href="#list-item-3">Item 3</a>
+                  <a class="list-group-item list-group-item-action" href="#list-item-4">Item 4</a>
+                </div>
+              </div>
+              <div class="col-8">
+                <div data-bs-spy="scroll" data-bs-target="#list-example" data-bs-smooth-scroll="true" class="scrollspy-example" tabindex="0">
+                  <h4 id="list-item-1">Item 1</h4>
+                  <p>This is some placeholder content for the scrollspy page. Note that as you scroll down the page, the appropriate navigation link is highlighted. It's repeated throughout the component example. We keep adding some more example copy here to emphasize the scrolling and highlighting.</p>
+                  <h4 id="list-item-2">Item 2</h4>
+                  <p>This is some placeholder content for the scrollspy page. Note that as you scroll down the page, the appropriate navigation link is highlighted. It's repeated throughout the component example. We keep adding some more example copy here to emphasize the scrolling and highlighting.</p>
+                  <h4 id="list-item-3">Item 3</h4>
+                  <p>This is some placeholder content for the scrollspy page. Note that as you scroll down the page, the appropriate navigation link is highlighted. It's repeated throughout the component example. We keep adding some more example copy here to emphasize the scrolling and highlighting.</p>
+                  <h4 id="list-item-4">Item 4</h4>
+                  <p>This is some placeholder content for the scrollspy page. Note that as you scroll down the page, the appropriate navigation link is highlighted. It's repeated throughout the component example. We keep adding some more example copy here to emphasize the scrolling and highlighting.</p>
+                </div>
+              </div>
+            </div>
+        </div>
+        
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.1/dist/js/bootstrap.bundle.min.js" integrity="sha384-u1OknCvxWvY5kfmNBILK2hRnQC3Pr17a+RTT6rIHI7NnikvbZlHgTPOOmMi466C8" crossorigin="anonymous"></script>
+        <script src="node_modules/bootstrap/dist/js/*.js"></script>
     </body>
+    <script>
+        document.querySelectorAll('#nav-tab>[data-bs-toggle="tab"]').forEach(el => {
+            el.addEventListener('shown.bs.tab', () => {
+                const target = el.getAttribute('data-bs-target')
+                const scrollElem = document.querySelector(`${target} [data-bs-spy="scroll"]`)
+                bootstrap.ScrollSpy.getOrCreateInstance(scrollElem).refresh()
+            })
+        })
+    </script>
 </html>
