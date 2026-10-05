@@ -1,104 +1,140 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Bootstrap demo</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-iYQeCzEYFbKjA/T2uDLTpkwGzCiq6soy8tYaI1GyVh/UjpbCx/TYkiZhlZB6+fzT" crossorigin="anonymous">
-    <link rel="stylesheet" href="node_modules/bootstrap/dist/css/*.css">
-  </head>
-  <style>
-    /* @media (min-width: 768px) */
-        .bd-example {
-            --bd-example-padding: 1.5rem;
-            margin-right: 0;
-            margin-left: 0;
-            border-width: 1px;
-            border-top-left-radius: var(--bs-border-radius);
-            border-top-right-radius: var(--bs-border-radius);
-        }
-        .bd-example {
-            --bd-example-padding: 1rem;
-            position: relative;
-            padding: var(--bd-example-padding);
-            margin: 0 -1.5rem;
-            border: solid #dee2e6;
-            border-width: 1px 0;
-        }
-  </style>
-    <body>
-        <nav class="navbar navbar-expand-lg bg-light">
-            <div class="container-fluid">
-                <a class="navbar-brand" href="#">Navbar</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="collapse navbar-collapse" id="navbarSupportedContent">
-                    <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-                        <li class="nav-item">
-                            <a class="nav-link active" aria-current="page" href="#">Home</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="#">Link</a>
-                        </li>
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            Dropdown
-                            </a>
-                            <ul class="dropdown-menu">
-                                <li><a class="dropdown-item" href="#">Action</a></li>
-                                <li><a class="dropdown-item" href="#">Another action</a></li>
-                                <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item" href="#">Something else here</a></li>
-                            </ul>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link disabled">Disabled</a>
-                        </li>
-                    </ul>
-                    <form class="d-flex" role="search">
-                        <input class="form-control me-2" type="search" placeholder="Search" aria-label="Search">
-                        <button class="btn btn-outline-success" type="submit">Search</button>
-                    </form>
-                </div>
-            </div>
-        </nav>
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pembaca Teks</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<main>
+  <header>
+    <div>
+      <h1>Pembaca Teks</h1>
+      <p class="sub">Ketik atau tempel teks, lalu dengarkan dibacakan. Berjalan sepenuhnya di komputer Anda.</p>
+    </div>
+    <button id="tema" class="small" type="button" aria-label="Ganti tema">Tema</button>
+  </header>
 
-        <div class="bd-example">
-            <div class="row">
-              <div class="col-4">
-                <div id="list-example" class="list-group">
-                  <a class="list-group-item list-group-item-action active" href="#list-item-1">Item 1</a>
-                  <a class="list-group-item list-group-item-action" href="#list-item-2">Item 2</a>
-                  <a class="list-group-item list-group-item-action" href="#list-item-3">Item 3</a>
-                  <a class="list-group-item list-group-item-action" href="#list-item-4">Item 4</a>
-                </div>
-              </div>
-              <div class="col-8">
-                <div data-bs-spy="scroll" data-bs-target="#list-example" data-bs-smooth-scroll="true" class="scrollspy-example" tabindex="0">
-                  <h4 id="list-item-1">Item 1</h4>
-                  <p>This is some placeholder content for the scrollspy page. Note that as you scroll down the page, the appropriate navigation link is highlighted. It's repeated throughout the component example. We keep adding some more example copy here to emphasize the scrolling and highlighting.</p>
-                  <h4 id="list-item-2">Item 2</h4>
-                  <p>This is some placeholder content for the scrollspy page. Note that as you scroll down the page, the appropriate navigation link is highlighted. It's repeated throughout the component example. We keep adding some more example copy here to emphasize the scrolling and highlighting.</p>
-                  <h4 id="list-item-3">Item 3</h4>
-                  <p>This is some placeholder content for the scrollspy page. Note that as you scroll down the page, the appropriate navigation link is highlighted. It's repeated throughout the component example. We keep adding some more example copy here to emphasize the scrolling and highlighting.</p>
-                  <h4 id="list-item-4">Item 4</h4>
-                  <p>This is some placeholder content for the scrollspy page. Note that as you scroll down the page, the appropriate navigation link is highlighted. It's repeated throughout the component example. We keep adding some more example copy here to emphasize the scrolling and highlighting.</p>
-                </div>
-              </div>
-            </div>
+  <section class="card">
+    <label for="teks">Teks yang akan dibacakan</label>
+    <textarea id="teks" placeholder="Tulis atau tempel teks di sini..."></textarea>
+    <div class="meta">
+      <span id="hitung">0 karakter · 0 kata</span>
+      <span>
+        <button id="muat" class="small" type="button">Buka file .txt</button>
+        <button id="bersih" class="small" type="button">Kosongkan</button>
+        <input id="berkas" type="file" accept=".txt,text/plain" hidden>
+      </span>
+    </div>
+
+    <div class="grid">
+      <div>
+        <label for="bahasa">Bahasa</label>
+        <select id="bahasa"></select>
+      </div>
+      <div>
+        <label for="suara">Suara</label>
+        <select id="suara"></select>
+      </div>
+    </div>
+
+    <div class="controls">
+      <div class="ctl">
+        <div class="ctl-head">
+          <label for="kecepatan">Kecepatan</label>
+          <button class="reset" type="button" data-target="kecepatan" hidden>Reset</button>
+          <output id="o-kecepatan" class="val" for="kecepatan">1×</output>
         </div>
-        
-        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.1/dist/js/bootstrap.bundle.min.js" integrity="sha384-u1OknCvxWvY5kfmNBILK2hRnQC3Pr17a+RTT6rIHI7NnikvbZlHgTPOOmMi466C8" crossorigin="anonymous"></script>
-        <script src="node_modules/bootstrap/dist/js/*.js"></script>
-    </body>
-    <script>
-        document.querySelectorAll('#nav-tab>[data-bs-toggle="tab"]').forEach(el => {
-            el.addEventListener('shown.bs.tab', () => {
-                const target = el.getAttribute('data-bs-target')
-                const scrollElem = document.querySelector(`${target} [data-bs-spy="scroll"]`)
-                bootstrap.ScrollSpy.getOrCreateInstance(scrollElem).refresh()
-            })
-        })
-    </script>
+        <div class="ctl-row">
+          <button class="step" type="button" data-target="kecepatan" data-dir="-1" aria-label="Perlambat">−</button>
+          <input id="kecepatan" type="range" min="0.5" max="2" step="0.05" value="1">
+          <button class="step" type="button" data-target="kecepatan" data-dir="1" aria-label="Percepat">+</button>
+        </div>
+        <div class="presets">
+          <button class="chip" type="button" data-target="kecepatan" data-value="0.75">0.75×</button>
+          <button class="chip" type="button" data-target="kecepatan" data-value="1">1×</button>
+          <button class="chip" type="button" data-target="kecepatan" data-value="1.25">1.25×</button>
+          <button class="chip" type="button" data-target="kecepatan" data-value="1.5">1.5×</button>
+          <button class="chip" type="button" data-target="kecepatan" data-value="2">2×</button>
+        </div>
+      </div>
+
+      <div class="ctl">
+        <div class="ctl-head">
+          <label for="nada">Nada</label>
+          <button class="reset" type="button" data-target="nada" hidden>Reset</button>
+          <output id="o-nada" class="val" for="nada">Normal</output>
+        </div>
+        <div class="ctl-row">
+          <button class="step" type="button" data-target="nada" data-dir="-1" aria-label="Turunkan nada">−</button>
+          <input id="nada" type="range" min="0" max="2" step="0.1" value="1">
+          <button class="step" type="button" data-target="nada" data-dir="1" aria-label="Naikkan nada">+</button>
+        </div>
+        <div class="presets">
+          <button class="chip" type="button" data-target="nada" data-value="0.6">Rendah</button>
+          <button class="chip" type="button" data-target="nada" data-value="1">Normal</button>
+          <button class="chip" type="button" data-target="nada" data-value="1.4">Tinggi</button>
+        </div>
+      </div>
+
+      <div class="ctl">
+        <div class="ctl-head">
+          <label for="volume">Volume</label>
+          <button class="reset" type="button" data-target="volume" hidden>Reset</button>
+          <output id="o-volume" class="val" for="volume">100%</output>
+        </div>
+        <div class="ctl-row">
+          <button class="step" type="button" data-target="volume" data-dir="-1" aria-label="Kecilkan volume">−</button>
+          <input id="volume" type="range" min="0" max="1" step="0.05" value="1">
+          <button class="step" type="button" data-target="volume" data-dir="1" aria-label="Besarkan volume">+</button>
+        </div>
+        <div class="presets">
+          <button class="chip" type="button" data-target="volume" data-value="0.25">25%</button>
+          <button class="chip" type="button" data-target="volume" data-value="0.5">50%</button>
+          <button class="chip" type="button" data-target="volume" data-value="0.75">75%</button>
+          <button class="chip" type="button" data-target="volume" data-value="1">100%</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="player" class="player" data-state="idle">
+      <button id="mundur" class="icon-btn skip-btn" type="button" aria-label="Skip Backward" data-tip="Skip Backward" disabled>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5V2L7 6l5 4V7a6 6 0 1 1-6 6H4a8 8 0 1 0 8-8z"/><text x="12" y="16.5" text-anchor="middle">10</text></svg>
+      </button>
+      <button id="putar" class="play-btn" type="button" aria-label="Putar" title="Putar (Ctrl+Enter)">
+        <svg class="i-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></svg>
+        <svg class="i-pause" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1.2"/><rect x="14" y="5" width="4" height="14" rx="1.2"/></svg>
+      </button>
+      <button id="maju" class="icon-btn skip-btn" type="button" aria-label="Skip Forward" data-tip="Skip Forward" disabled>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5V2l5 4-5 4V7a6 6 0 1 0 6 6h2a8 8 0 1 1-8-8z"/><text x="12" y="16.5" text-anchor="middle">10</text></svg>
+      </button>
+      <div class="p-main">
+        <div class="p-top">
+          <span id="p-label" class="p-label">Siap diputar</span>
+          <span class="eq" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+          <span id="p-count" class="p-count"></span>
+          <span id="p-time" class="p-time" title="Perkiraan sisa waktu">--:--</span>
+        </div>
+        <div class="p-track"><div id="p-bar" class="p-bar"></div></div>
+      </div>
+      <button id="berhenti" class="icon-btn danger" type="button" aria-label="Berhenti" title="Berhenti (Esc)" disabled>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2.5"/></svg>
+      </button>
+      <button id="uji" class="ghost-btn" type="button">Uji suara</button>
+    </div>
+
+    <div id="status" class="status" role="status" aria-live="polite"></div>
+    <div id="notice" class="notice" hidden></div>
+    <div id="reader" class="reader" hidden aria-label="Teks yang sedang dibacakan"></div>
+  </section>
+
+  <section class="card history">
+    <h2>Riwayat teks</h2>
+    <ul id="riwayat"></ul>
+  </section>
+</main>
+
+<script src="script.js"></script>
+</body>
 </html>
