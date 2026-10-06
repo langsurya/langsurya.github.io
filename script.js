@@ -196,7 +196,21 @@
   }
 
   /* ---------- pemutaran ---------- */
-  let queue = [], idx = 0, state = 'idle', spans = [], token = 0, source = '';
+  let queue = [], idx = 0, state = 'idle', spans = [], token = 0, source = '', speechStartTimer = null;
+
+  function cancelSpeech(){
+    clearTimeout(speechStartTimer);
+    speechStartTimer = null;
+    synth.cancel();
+  }
+
+  function afterCancel(callback){
+    clearTimeout(speechStartTimer);
+    speechStartTimer = setTimeout(() => {
+      speechStartTimer = null;
+      callback();
+    }, 100);
+  }
 
   function setState(s){
     state = s;
@@ -270,12 +284,12 @@
   }
 
   function jumpTo(i){
-    token++; synth.cancel();
+    token++; cancelSpeech();
     idx = i; setState('playing');
-    next(token);
+    next(token, true);
   }
 
-  function next(myToken){
+  function next(myToken, waitForCancel = false){
     if (myToken !== token) return;
     if (idx >= queue.length){ finish('Selesai dibacakan.', true); return; }
     spans.forEach((s, i) => { s.className = i < idx ? 'done' : i === idx ? 'now' : ''; });
@@ -284,11 +298,17 @@
     setProgress(idx);
     remaining = estimateFrom(idx); showTime();
     el.status.textContent = '';
-    say(queue[idx].text, () => { idx++; next(myToken); }, e => finish('Terjadi kesalahan suara: ' + e.error));
+    const speak = () => {
+      if (myToken !== token) return;
+      say(queue[idx].text, () => { idx++; next(myToken); }, e => finish('Terjadi kesalahan suara: ' + e.error));
+      if (state === 'paused') synth.pause();
+    };
+    if (waitForCancel) afterCancel(speak);
+    else speak();
   }
 
   function finish(msg, completed){
-    token++; synth.cancel();
+    token++; cancelSpeech();
     if (completed){ spans.forEach(s => s.className = 'done'); el.pBar.style.width = '100%'; }
     else { spans.forEach(s => s.className = ''); el.pBar.style.width = '0%'; }
     idx = 0;
@@ -302,11 +322,11 @@
   function start(){
     source = el.teks.value.replace(/\r/g, '');
     if (!source.trim()){ el.status.textContent = 'Isi teks dulu sebelum memutar.'; el.teks.focus(); return; }
-    synth.cancel();
-    queue = chunk(source); idx = 0; token++;
+    token++; cancelSpeech();
+    queue = chunk(source); idx = 0;
     renderReader(); setState('playing');
     addHistory(source.trim());
-    next(token);
+    next(token, true);
   }
 
   el.putar.onclick = () => {
@@ -325,12 +345,14 @@
   });
 
   el.uji.onclick = () => {
-    synth.cancel();
-    say('Halo, ini contoh suara yang dipilih.', () => { el.status.textContent = ''; });
+    cancelSpeech();
     el.status.textContent = 'Menguji suara…';
+    afterCancel(() => {
+      if (state === 'idle') say('Halo, ini contoh suara yang dipilih.', () => { el.status.textContent = ''; });
+    });
   };
 
-  window.addEventListener('beforeunload', () => synth.cancel());
+  window.addEventListener('beforeunload', cancelSpeech);
 
   /* ---------- file & bersihkan ---------- */
   el.muat.onclick = () => el.berkas.click();
