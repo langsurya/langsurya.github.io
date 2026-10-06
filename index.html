@@ -39,7 +39,12 @@
       </div>
     </div>
 
-    <div class="controls">
+    <div id="panel" class="controls" role="dialog" aria-label="Pengaturan suara" hidden>
+      <div class="panel-head">
+        <strong>Pengaturan suara</strong>
+        <button id="uji" class="ghost-btn" type="button">Uji suara</button>
+        <button id="tutup" class="icon-btn" type="button" aria-label="Tutup pengaturan">✕</button>
+      </div>
       <div class="ctl">
         <div class="ctl-head">
           <label for="kecepatan">Kecepatan</label>
@@ -121,7 +126,7 @@
       <button id="berhenti" class="icon-btn danger" type="button" aria-label="Berhenti" title="Berhenti (Esc)" disabled>
         <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2.5"/></svg>
       </button>
-      <button id="uji" class="ghost-btn" type="button">Uji suara</button>
+      <button id="atur" class="ghost-btn" type="button" aria-expanded="false" aria-controls="panel" title="Kecepatan, nada, volume">⚙ <span id="atur-info">1× · 100%</span></button>
     </div>
 
     <div id="status" class="status" role="status" aria-live="polite"></div>

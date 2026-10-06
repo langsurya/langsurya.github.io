@@ -7,8 +7,25 @@
     player:$('player'), pLabel:$('p-label'), pCount:$('p-count'), pBar:$('p-bar'),
     mundur:$('mundur'), maju:$('maju'), pTime:$('p-time'),
     status:$('status'), notice:$('notice'), reader:$('reader'), riwayat:$('riwayat'),
-    muat:$('muat'), berkas:$('berkas'), bersih:$('bersih'), tema:$('tema')
+    muat:$('muat'), berkas:$('berkas'), bersih:$('bersih'), tema:$('tema'),
+    panel:$('panel'), atur:$('atur'), aturInfo:$('atur-info'), tutup:$('tutup')
   };
+
+  /* ---------- panel pengaturan (buka/tutup) ---------- */
+  function togglePanel(open){
+    if (open === undefined) open = el.panel.hidden;
+    el.panel.hidden = !open;
+    el.atur.setAttribute('aria-expanded', open);
+  }
+  el.atur.onclick = e => { e.stopPropagation(); togglePanel(); };
+  el.tutup.onclick = () => togglePanel(false);
+  document.addEventListener('pointerdown', e => {
+    if (!el.panel.hidden && !el.panel.contains(e.target) && !el.atur.contains(e.target)) togglePanel(false);
+  });
+
+  // Jangan tarik layar ke kalimat aktif saat pengguna sedang menggulir sendiri
+  let userScrollAt = 0;
+  ['wheel', 'touchmove'].forEach(ev => window.addEventListener(ev, () => { userScrollAt = Date.now(); }, { passive:true }));
 
   if (!('speechSynthesis' in window)) {
     el.notice.hidden = false;
@@ -124,6 +141,8 @@
     });
     const reset = document.querySelector('.reset[data-target="' + k + '"]');
     if (reset) reset.hidden = near(v, ctl[k].def);
+    if (el.aturInfo) el.aturInfo.textContent =
+      ctl.kecepatan.fmt(+el.kecepatan.value) + ' · ' + ctl.volume.fmt(+el.volume.value);
     store.set('tts:' + k, v);
   }
 
@@ -307,6 +326,28 @@
     el.reader.hidden = false;
   }
 
+  // Posisikan kalimat aktif di tengah area baca. Jika teks di bawahnya
+  // sudah habis, browser otomatis berhenti di batas akhir (tidak dipaksa).
+  function centerSpan(s){
+    if (!s) return;
+    // panel terbuka atau pengguna baru saja menggulir → jangan pindahkan layar
+    if (!el.panel.hidden || Date.now() - userScrollAt < 4000) return;
+    const r = el.reader;
+    const sr = s.getBoundingClientRect();
+    if (r.scrollHeight > r.clientHeight + 1) {
+      // area pembaca punya scroll sendiri
+      const rr = r.getBoundingClientRect();
+      const delta = (sr.top + sr.height / 2) - (rr.top + rr.height / 2);
+      r.scrollBy({ top: delta, behavior: 'smooth' });
+    } else {
+      // scroll halaman; abaikan area yang tertutup player jika menempel di atas
+      const pr = el.player.getBoundingClientRect();
+      const topEdge = pr.top <= 1 && pr.bottom > 0 ? pr.bottom : 0;
+      const mid = topEdge + (window.innerHeight - topEdge) / 2;
+      window.scrollBy({ top: (sr.top + sr.height / 2) - mid, behavior: 'smooth' });
+    }
+  }
+
   function jumpTo(i){
     token++; cancelSpeech();
     idx = i; setState('playing');
@@ -320,7 +361,7 @@
     if (myToken !== token) return;
     if (idx >= queue.length){ finish('Selesai dibacakan.', true); return; }
     spans.forEach((s, i) => { s.className = i < idx ? 'done' : i === idx ? 'now' : ''; });
-    spans[idx].scrollIntoView({ block:'nearest', behavior:'smooth' });
+    centerSpan(spans[idx]);
     el.pLabel.textContent = 'Membacakan…';
     setProgress(idx);
     remaining = estimateFrom(idx); showTime();
@@ -392,6 +433,7 @@
 
   document.addEventListener('keydown', e => {
     if ((e.ctrlKey || e.metaKey) && e.key === 'Enter'){ e.preventDefault(); el.putar.click(); }
+    else if (e.key === 'Escape' && !el.panel.hidden) togglePanel(false);
     else if (e.key === 'Escape' && state !== 'idle') finish('Dihentikan.');
     else if (e.altKey && e.key === 'ArrowLeft'){ e.preventDefault(); skip(-1); }
     else if (e.altKey && e.key === 'ArrowRight'){ e.preventDefault(); skip(1); }
