@@ -80,7 +80,7 @@
     }
     el.bahasa.disabled = el.suara.disabled = false;
 
-    const langList = uniqueLanguageOptions(preferredLangOrder([...new Set(voices.map(v => v.lang))]));
+    const langList = uniqueLanguageOptions(preferredLangOrder([...new Set(voices.map(v => normalizeLocale(v.lang)))]));
     langList.forEach(lang => {
       const o = document.createElement('option');
       o.value = lang;
@@ -88,69 +88,90 @@
       el.bahasa.appendChild(o);
     });
 
-    const defLang = langList.includes(prevLang) ? prevLang
-      : (langList.find(l => l.toLowerCase().startsWith('id')) ||
-         langList.find(l => l.toLowerCase().startsWith('en-us')) ||
-         langList.find(l => l.toLowerCase().startsWith('en')) ||
+    const normalizedPrev = prevLang ? normalizeLocale(prevLang) : null;
+    const defLang = langList.includes(normalizedPrev) ? normalizedPrev
+      : (langList.find(l => normalizeLocale(l).startsWith('id')) ||
+         langList.find(l => normalizeLocale(l).startsWith('en-us')) ||
+         langList.find(l => normalizeLocale(l).startsWith('en')) ||
          langList[0]);
     el.bahasa.value = defLang;
     fillVoices(prevVoice);
 
-    const adaID = langList.some(l => l.toLowerCase().startsWith('id'));
+    const adaID = langList.some(l => normalizeLocale(l).startsWith('id'));
     el.notice.hidden = adaID;
     if (!adaID) el.notice.textContent =
       'Suara bahasa Indonesia belum terpasang di sistem Anda. Di Windows: Settings → Time & language → Speech → Add voices. Di Chrome, suara Google online juga bisa muncul jika terhubung internet.';
   }
 
   const languageLabels = {
-    'id-ID': 'Indonesia',
+    'id-id': 'Indonesia',
     'id': 'Indonesia',
-    'en-US': 'English (US)',
-    'en-GB': 'English (UK)',
-    'en-AU': 'English (Australia)',
-    'en-CA': 'English (Canada)',
+    'en-us': 'English (US)',
+    'en-gb': 'English (UK)',
+    'en-au': 'English (Australia)',
+    'en-ca': 'English (Canada)',
     'en': 'English',
-    'de-DE': 'Deutsch',
+    'de-de': 'Deutsch',
     'de': 'Deutsch',
-    'fr-FR': 'Français',
+    'fr-fr': 'Français',
     'fr': 'Français',
-    'es-ES': 'Español',
+    'es-es': 'Español',
     'es': 'Español',
-    'ja-JP': '日本語 (Nihongo)',
+    'ja-jp': '日本語 (Nihongo)',
     'ja': '日本語 (Nihongo)',
-    'ko-KR': '한국어 (Hangul)',
+    'ko-kr': '한국어 (Hangul)',
     'ko': '한국어 (Hangul)',
-    'zh-CN': '中文 (Zhōngwén, 简体)',
-    'zh-TW': '中文 (Zhōngwén, 繁體)',
-    'zh-HK': '中文 (Zhōngwén, 香港)',
+    'zh-cn': '中文 (Zhōngwén, 简体)',
+    'zh-tw': '中文 (Zhōngwén, 繁體)',
+    'zh-hk': '中文 (Zhōngwén, 香港)',
     'zh': '中文 (Zhōngwén)',
-    'pt-BR': 'Português (Brasil)',
-    'pt-PT': 'Português (Portugal)',
+    'pt-br': 'Português (Brasil)',
+    'pt-pt': 'Português (Portugal)',
     'pt': 'Português',
-    'it-IT': 'Italiano',
+    'it-it': 'Italiano',
     'it': 'Italiano',
-    'ru-RU': 'Русский (Russkiy)',
+    'ru-ru': 'Русский (Russkiy)',
     'ru': 'Русский (Russkiy)',
-    'nl-NL': 'Nederlands',
+    'nl-nl': 'Nederlands',
     'nl': 'Nederlands',
-    'hi-IN': 'हिन्दी (Hindi)',
+    'hi-in': 'हिन्दी (Hindi)',
     'hi': 'हिन्दी (Hindi)',
-    'pl-PL': 'Polski (Polish)',
+    'pl-pl': 'Polski (Polish)',
     'pl': 'Polski (Polish)',
-    'tr-TR': 'Türkçe (Turkish)',
-    'tr': 'Türkçe (Turkish)'
+    'tr-tr': 'Türkçe (Turkish)',
+    'tr': 'Türkçe (Turkish)',
+    'as-in': 'অসমীয়া (Assamese)',
+    'bn-in': 'বাংলা (Bangla)',
+    'mr-in': 'मराठी (Marathi)',
+    'ta-in': 'தமிழ் (Tamil)',
+    'te-in': 'తెలుగు (Telugu)',
+    'gu-in': 'ગુજરાતી (Gujarati)'
   };
 
+  function normalizeLocale(lang){
+    if (!lang) return lang;
+    let value = String(lang).trim().toLowerCase().replace(/_/g, '-').replace(/#/g, '-');
+    const parts = value.split('-').filter(Boolean);
+    const normalized = [];
+    const scriptVariants = new Set(['hant','hans','latn','cyrl','arab','jpan','hang','deva','thai','mong','guru','beng','gujr','taml','telu','knda','mlym','orya']);
+    for (const part of parts) {
+      if (scriptVariants.has(part)) break;
+      normalized.push(part);
+    }
+    return normalized.join('-');
+  }
+
   function labelForLanguage(lang){
-    return languageLabels[lang] || languageLabels[lang.split('-')[0]] || lang;
+    const key = normalizeLocale(lang);
+    return languageLabels[key] || languageLabels[key.split('-')[0]] || (lang || '').replace(/_/g, '-');
   }
 
   function preferredLangOrder(langList){
     return [...langList].sort((a, b) => {
-      const order = ['id-ID', 'en-US', 'en-GB', 'en-AU', 'en-CA', 'de-DE', 'fr-FR', 'es-ES', 'it-IT', 'pt-BR', 'ja-JP', 'ko-KR', 'zh-CN', 'zh-TW', 'zh-HK', 'ru-RU', 'hi-IN', 'pl-PL', 'tr-TR', 'nl-NL'];
-      const ai = order.indexOf(a);
-      const bi = order.indexOf(b);
-      if (ai === -1 && bi === -1) return a.localeCompare(b);
+      const order = ['id-id', 'en-us', 'en-gb', 'en-au', 'en-ca', 'de-de', 'fr-fr', 'es-es', 'it-it', 'pt-br', 'ja-jp', 'ko-kr', 'zh-cn', 'zh-tw', 'zh-hk', 'ru-ru', 'hi-in', 'pl-pl', 'tr-tr', 'nl-nl'];
+      const ai = order.indexOf(normalizeLocale(a));
+      const bi = order.indexOf(normalizeLocale(b));
+      if (ai === -1 && bi === -1) return normalizeLocale(a).localeCompare(normalizeLocale(b));
       if (ai === -1) return 1;
       if (bi === -1) return -1;
       return ai - bi;
@@ -160,16 +181,16 @@
   function uniqueLanguageOptions(langList){
     const seen = new Set();
     return langList.filter(lang => {
-      const label = labelForLanguage(lang);
-      if (seen.has(label)) return false;
-      seen.add(label);
+      const key = normalizeLocale(lang);
+      if (seen.has(key)) return false;
+      seen.add(key);
       return true;
     });
   }
 
   function fillVoices(prefer){
-    const lang = el.bahasa.value;
-    const list = voices.filter(v => v.lang === lang);
+    const lang = normalizeLocale(el.bahasa.value);
+    const list = voices.filter(v => normalizeLocale(v.lang) === lang);
     el.suara.innerHTML = '';
     list.forEach(v => {
       const o = document.createElement('option');
@@ -208,10 +229,10 @@
     if (!voices.length) return;
     const detected = detectLanguageByText(el.teks.value);
     if (!detected) return;
-    const langList = uniqueLanguageOptions(preferredLangOrder([...new Set(voices.map(v => v.lang))]));
-    const target = langList.find(l => l.toLowerCase().startsWith(detected)) ||
-      langList.find(l => l.toLowerCase().startsWith('id')) ||
-      langList.find(l => l.toLowerCase().startsWith('en'));
+    const langList = uniqueLanguageOptions(preferredLangOrder([...new Set(voices.map(v => normalizeLocale(v.lang)))]));
+    const target = langList.find(l => normalizeLocale(l).startsWith(detected)) ||
+      langList.find(l => normalizeLocale(l).startsWith('id')) ||
+      langList.find(l => normalizeLocale(l).startsWith('en'));
     if (!target || el.bahasa.value === target) return;
     el.bahasa.value = target;
     fillVoices();
