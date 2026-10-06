@@ -269,13 +269,13 @@ input[type=range]::-moz-range-thumb{
 }
 
 /* ---------- panel transparan ---------- */
-:root{--glass:rgba(251,252,252,.72)}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--glass:rgba(23,38,45,.72)}}
-:root[data-theme="dark"]{--glass:rgba(23,38,45,.72)}
-:root[data-theme="light"]{--glass:rgba(251,252,252,.72)}
+:root{--glass:rgba(251,252,252,.30)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--glass:rgba(23,38,45,.30)}}
+:root[data-theme="dark"]{--glass:rgba(23,38,45,.30)}
+:root[data-theme="light"]{--glass:rgba(251,252,252,.30)}
 .controls{
   background:var(--glass);
-  -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);
+  -webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);
 }
 @supports (height:100dvh){
   .controls{max-height:calc(100dvh - 32px)}
