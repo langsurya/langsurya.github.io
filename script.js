@@ -196,20 +196,11 @@
   }
 
   /* ---------- pemutaran ---------- */
-  let queue = [], idx = 0, state = 'idle', spans = [], token = 0, source = '', speechStartTimer = null;
+  let queue = [], idx = 0, state = 'idle', spans = [], token = 0, source = '', speechCancelled = false;
 
   function cancelSpeech(){
-    clearTimeout(speechStartTimer);
-    speechStartTimer = null;
     synth.cancel();
-  }
-
-  function afterCancel(callback){
-    clearTimeout(speechStartTimer);
-    speechStartTimer = setTimeout(() => {
-      speechStartTimer = null;
-      callback();
-    }, 100);
+    speechCancelled = true;
   }
 
   function setState(s){
@@ -263,6 +254,8 @@
     u.rate = +el.kecepatan.value; u.pitch = +el.nada.value; u.volume = +el.volume.value;
     u.onend = onend;
     u.onerror = e => { if (e.error !== 'canceled' && e.error !== 'interrupted') onerror && onerror(e); };
+    speechCancelled = false;
+    synth.resume();
     synth.speak(u);
     return u;
   }
@@ -286,10 +279,10 @@
   function jumpTo(i){
     token++; cancelSpeech();
     idx = i; setState('playing');
-    next(token, true);
+    next(token);
   }
 
-  function next(myToken, waitForCancel = false){
+  function next(myToken){
     if (myToken !== token) return;
     if (idx >= queue.length){ finish('Selesai dibacakan.', true); return; }
     spans.forEach((s, i) => { s.className = i < idx ? 'done' : i === idx ? 'now' : ''; });
@@ -298,13 +291,13 @@
     setProgress(idx);
     remaining = estimateFrom(idx); showTime();
     el.status.textContent = '';
-    const speak = () => {
+    if (myToken !== token) return;
+    say(queue[idx].text, () => {
       if (myToken !== token) return;
-      say(queue[idx].text, () => { idx++; next(myToken); }, e => finish('Terjadi kesalahan suara: ' + e.error));
-      if (state === 'paused') synth.pause();
-    };
-    if (waitForCancel) afterCancel(speak);
-    else speak();
+      idx++; next(myToken);
+    }, e => {
+      if (myToken === token) finish('Terjadi kesalahan suara: ' + e.error);
+    });
   }
 
   function finish(msg, completed){
@@ -322,11 +315,12 @@
   function start(){
     source = el.teks.value.replace(/\r/g, '');
     if (!source.trim()){ el.status.textContent = 'Isi teks dulu sebelum memutar.'; el.teks.focus(); return; }
-    token++; cancelSpeech();
+    token++;
+    if (!speechCancelled && (synth.speaking || synth.pending)) cancelSpeech();
     queue = chunk(source); idx = 0;
     renderReader(); setState('playing');
     addHistory(source.trim());
-    next(token, true);
+    next(token);
   }
 
   el.putar.onclick = () => {
@@ -347,9 +341,7 @@
   el.uji.onclick = () => {
     cancelSpeech();
     el.status.textContent = 'Menguji suara…';
-    afterCancel(() => {
-      if (state === 'idle') say('Halo, ini contoh suara yang dipilih.', () => { el.status.textContent = ''; });
-    });
+    say('Halo, ini contoh suara yang dipilih.', () => { el.status.textContent = ''; });
   };
 
   window.addEventListener('beforeunload', cancelSpeech);
