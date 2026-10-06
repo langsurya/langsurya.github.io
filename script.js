@@ -1,4 +1,5 @@
 (() => {
+  const APP_VERSION = 'web-v2026.10.06-1646';
   const $ = id => document.getElementById(id);
   const el = {
     teks:$('teks'), hitung:$('hitung'), bahasa:$('bahasa'), suara:$('suara'),
@@ -52,6 +53,20 @@
     store.set('tts:tema', next);
   };
 
+  /* ---------- versi web / cache ---------- */
+  function updateAppVersionBadge(){
+    const versionNode = $('app-version');
+    if (!versionNode) return;
+    const previous = store.get('tts:app_version', null);
+    versionNode.textContent = 'Versi web: ' + APP_VERSION;
+    if (previous && previous !== APP_VERSION) {
+      versionNode.title = 'Versi lama terdeteksi di perangkat: ' + previous + '. Halaman baru mungkin belum ter-refresh sepenuhnya.';
+    } else {
+      versionNode.title = 'Versi web saat ini sudah sesuai dengan file yang dimuat.';
+    }
+    store.set('tts:app_version', APP_VERSION);
+  }
+
   /* ---------- suara ---------- */
   let voices = [];
   let voiceSignature = null;
@@ -101,6 +116,7 @@
     el.notice.hidden = adaID;
     if (!adaID) el.notice.textContent =
       'Suara bahasa Indonesia belum terpasang di sistem Anda. Di Windows: Settings → Time & language → Speech → Add voices. Di Chrome, suara Google online juga bisa muncul jika terhubung internet.';
+    updateAppVersionBadge();
   }
 
   const languageLabels = {
@@ -233,10 +249,10 @@
     const target = langList.find(l => normalizeLocale(l).startsWith(detected)) ||
       langList.find(l => normalizeLocale(l).startsWith('id')) ||
       langList.find(l => normalizeLocale(l).startsWith('en'));
-    if (!target || el.bahasa.value === target) return;
+    if (!target || normalizeLocale(el.bahasa.value) === normalizeLocale(target)) return;
     el.bahasa.value = target;
     fillVoices();
-    store.set('tts:bahasa', el.bahasa.value);
+    store.set('tts:bahasa', normalizeLocale(el.bahasa.value));
     store.set('tts:suara', el.suara.value);
   }
 
@@ -247,7 +263,7 @@
     loadVoices();
     if (++voiceRetryCount >= 40) clearInterval(voiceRetry);
   }, 250);
-  el.bahasa.onchange = () => { fillVoices(); store.set('tts:bahasa', el.bahasa.value); store.set('tts:suara', el.suara.value); };
+  el.bahasa.onchange = () => { fillVoices(); store.set('tts:bahasa', normalizeLocale(el.bahasa.value)); store.set('tts:suara', el.suara.value); };
   el.suara.onchange = () => store.set('tts:suara', el.suara.value);
 
   /* ---------- kontrol kecepatan / nada / volume ---------- */
