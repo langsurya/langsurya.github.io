@@ -37,14 +37,33 @@
 
   /* ---------- suara ---------- */
   let voices = [];
+  let voiceSignature = null;
   function loadVoices(){
-    voices = synth.getVoices();
-    if (!voices.length) return;
-    const langs = [...new Set(voices.map(v => v.lang))].sort((a, b) => a.localeCompare(b));
+    const available = synth.getVoices();
+    const signature = available.map(v => [v.voiceURI, v.name, v.lang, v.localService].join('\0')).join('\1');
+    if (signature === voiceSignature) return;
+    voiceSignature = signature;
+    voices = available;
+
     const prevLang = el.bahasa.value || store.get('tts:bahasa', null);
     const prevVoice = el.suara.value || store.get('tts:suara', null);
-
     el.bahasa.innerHTML = '';
+    el.suara.innerHTML = '';
+    if (!voices.length) {
+      const option = document.createElement('option');
+      option.textContent = 'Memuat daftar suara…';
+      option.disabled = true;
+      option.selected = true;
+      el.bahasa.appendChild(option);
+      el.suara.appendChild(option.cloneNode(true));
+      el.bahasa.disabled = el.suara.disabled = true;
+      el.notice.hidden = false;
+      el.notice.textContent = 'Browser belum menyediakan daftar suara. Coba tunggu sebentar atau muat ulang halaman.';
+      return;
+    }
+    el.bahasa.disabled = el.suara.disabled = false;
+    const langs = [...new Set(voices.map(v => v.lang))].sort((a, b) => a.localeCompare(b));
+
     langs.forEach(l => {
       const o = document.createElement('option');
       o.value = l; o.textContent = l;
@@ -71,8 +90,13 @@
     });
     if (prefer && list.some(v => v.name === prefer)) el.suara.value = prefer;
   }
+  synth.addEventListener('voiceschanged', loadVoices);
   loadVoices();
-  synth.onvoiceschanged = loadVoices;
+  let voiceRetryCount = 0;
+  const voiceRetry = setInterval(() => {
+    loadVoices();
+    if (++voiceRetryCount >= 40) clearInterval(voiceRetry);
+  }, 250);
   el.bahasa.onchange = () => { fillVoices(); store.set('tts:bahasa', el.bahasa.value); store.set('tts:suara', el.suara.value); };
   el.suara.onchange = () => store.set('tts:suara', el.suara.value);
 

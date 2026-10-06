@@ -171,3 +171,55 @@ input[type=range]::-moz-range-thumb{
 .chip.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
 
 @media (prefers-reduced-motion:reduce){.reader span{transition:none}}
+
+@media (max-width:600px){
+  body{padding:16px 12px calc(28px + env(safe-area-inset-bottom))}
+  header{align-items:flex-start;margin-bottom:14px}
+  h1{font-size:1.4rem}
+  .sub{font-size:.88rem;line-height:1.45}
+  .card{padding:14px;border-radius:12px}
+  textarea{min-height:32vh;max-height:52vh;padding:12px}
+  .meta{align-items:center;font-size:.82rem}
+  .meta>span:last-child{display:flex;gap:6px}
+  .small{min-height:40px;padding:7px 10px}
+  .grid,.controls{grid-template-columns:minmax(0,1fr);gap:12px}
+  .grid{margin-top:16px}
+  .ctl{padding:12px}
+  .ctl-row{gap:12px}
+  .step{width:40px;height:40px}
+  input[type=range]{height:8px;touch-action:pan-y}
+  input[type=range]::-webkit-slider-thumb{width:22px;height:22px}
+  input[type=range]::-moz-range-thumb{width:18px;height:18px}
+  .presets{gap:8px}
+  .chip{min-height:36px;padding:5px 12px}
+  .player{
+    display:grid;grid-template-columns:44px 56px 44px 44px minmax(0,1fr);
+    gap:8px;margin-top:16px;padding:12px;
+  }
+  .p-main{grid-column:1/-1;grid-row:1;min-width:0}
+  .skip-btn{width:44px;height:44px}
+  #mundur{grid-column:1;grid-row:2}
+  #putar{grid-column:2;grid-row:2;width:56px;height:56px}
+  #maju{grid-column:3;grid-row:2}
+  #berhenti{grid-column:4;grid-row:2;width:44px;height:44px}
+  #uji{grid-column:5;grid-row:2;min-height:44px;padding:8px 10px;white-space:nowrap}
+  .p-top{gap:6px;font-size:.82rem}
+  .p-count{margin-left:auto}
+  .p-time{min-width:42px}
+  .skip-btn::after{display:none}
+  .status,.notice{font-size:.86rem}
+  .notice{overflow-wrap:anywhere}
+  .history li{gap:6px}
+  .history li button.small{flex:none}
+}
+
+@media (max-width:380px){
+  body{padding-right:8px;padding-left:8px}
+  .card{padding:12px}
+  .player{grid-template-columns:40px 52px 40px 40px minmax(0,1fr);gap:6px;padding:10px}
+  .skip-btn,#berhenti{width:40px;height:40px}
+  #putar{width:52px;height:52px}
+  #uji{padding:7px 8px;font-size:.82rem}
+  .meta>span:last-child{width:100%}
+  .meta>span:last-child button{flex:1}
+}
