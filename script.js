@@ -57,7 +57,7 @@
   let voiceSignature = null;
   function loadVoices(){
     const available = synth.getVoices();
-    const signature = available.map(v => [v.voiceURI, v.name, v.lang, v.localService].join('\0')).join('\1');
+    const signature = available.map(v => [v.voiceURI, v.name, v.lang, v.localService].join('\x00')).join('\x01');
     if (signature === voiceSignature) return;
     voiceSignature = signature;
     voices = available;

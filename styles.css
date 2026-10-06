@@ -267,3 +267,28 @@ input[type=range]::-moz-range-thumb{
   .controls .chip{min-height:34px;padding:5px 12px}
   #atur{grid-column:5;grid-row:2;min-height:44px;padding:8px 10px;font-size:.82rem}
 }
+
+/* ---------- panel transparan ---------- */
+:root{--glass:rgba(251,252,252,.72)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--glass:rgba(23,38,45,.72)}}
+:root[data-theme="dark"]{--glass:rgba(23,38,45,.72)}
+:root[data-theme="light"]{--glass:rgba(251,252,252,.72)}
+.controls{
+  background:var(--glass);
+  -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);
+}
+@supports (height:100dvh){
+  .controls{max-height:calc(100dvh - 32px)}
+  @media (max-width:600px){.controls{max-height:70dvh}}
+}
+
+/* ---------- kompatibilitas browser lama (Opera Mobile, dll) ---------- */
+@supports not (color:color-mix(in srgb,red 50%,blue)){
+  .player{background:var(--panel)}
+  .play-btn{box-shadow:0 4px 14px rgba(0,0,0,.25)}
+  .reader span:hover{background:rgba(92,184,214,.15)}
+  .reader span.now{background:rgba(92,184,214,.3);box-shadow:0 0 0 2px rgba(92,184,214,.3)}
+  .skip-btn:hover:not(:disabled){background:rgba(92,184,214,.14)}
+  .icon-btn.danger:hover:not(:disabled){background:rgba(224,122,107,.14)}
+}
+.player[data-state="playing"] .play-btn::after{top:-4px;right:-4px;bottom:-4px;left:-4px}
