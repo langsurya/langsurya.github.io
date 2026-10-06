@@ -262,11 +262,32 @@
     const v = voices.find(x => x.name === el.suara.value);
     if (v){ u.voice = v; u.lang = v.lang; } else u.lang = el.bahasa.value || 'id-ID';
     u.rate = +el.kecepatan.value; u.pitch = +el.nada.value; u.volume = +el.volume.value;
-    u.onend = onend;
-    u.onerror = e => { if (e.error !== 'canceled' && e.error !== 'interrupted') onerror && onerror(e); };
+    // Di sebagian browser mobile, onend kadang tidak terpanggil sehingga
+    // antrean macet (mis. tetap 1/378). Watchdog memanggil onend sekali saja
+    // jika mesin suara sudah tidak berbicara.
+    let ended = false, started = false, watch = null;
+    const done = () => {
+      if (ended) return;
+      ended = true; clearInterval(watch);
+      onend && onend();
+    };
+    u.onstart = () => { started = true; };
+    u.onend = done;
+    u.onerror = e => {
+      ended = true; clearInterval(watch);
+      if (e.error !== 'canceled' && e.error !== 'interrupted') onerror && onerror(e);
+    };
     speechCancelled = false;
     synth.resume();
     synth.speak(u);
+    let idle = 0;
+    watch = setInterval(() => {
+      if (ended || speechCancelled) { clearInterval(watch); return; }
+      if (!synth.speaking && !synth.pending) {
+        // beri waktu ekstra jika ucapan belum sempat mulai
+        if (++idle >= (started ? 2 : 6)) done();
+      } else idle = 0;
+    }, 500);
     return u;
   }
 
@@ -289,7 +310,10 @@
   function jumpTo(i){
     token++; cancelSpeech();
     idx = i; setState('playing');
-    next(token);
+    // Android Chrome sering membuang speak() yang dipanggil tepat setelah
+    // cancel(); beri jeda singkat agar suara benar-benar keluar.
+    const myToken = token;
+    chunkTimer = setTimeout(() => { chunkTimer = null; next(myToken); }, 120);
   }
 
   function next(myToken){
@@ -344,9 +368,23 @@
     next(token);
   }
 
+  // Catatan: synth.pause()/resume() tidak andal di mobile (Android Chrome sering
+  // diam setelah resume dan onend tidak pernah terpanggil). Karena itu jeda =
+  // hentikan ucapan, lanjut = ucapkan ulang kalimat yang sedang aktif.
+  function pause(){
+    token++; cancelSpeech();
+    setState('paused');
+    setProgress(idx);
+    remaining = estimateFrom(idx); showTime();
+  }
+  function resume(){
+    el.pLabel.textContent = 'Membacakan…';
+    jumpTo(idx);
+  }
+
   el.putar.onclick = () => {
-    if (state === 'playing'){ synth.pause(); setState('paused'); return; }
-    if (state === 'paused'){ synth.resume(); setState('playing'); el.pLabel.textContent = 'Membacakan…'; return; }
+    if (state === 'playing'){ pause(); return; }
+    if (state === 'paused'){ resume(); return; }
     start();
   };
 
