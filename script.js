@@ -176,7 +176,7 @@
   /* ---------- pecah teks menjadi kalimat ---------- */
   // Mengembalikan potongan beserta posisi aslinya agar tampilan pembaca identik dengan teks yang ditempel
   function chunk(text, max = 180){
-    const out = [], re = /[^.!?;:\n]+[.!?;:]*["'”’)\]]*/g, ws = /\s/;
+    const out = [], re = /[^.!?;:,\n]+[.!?;:,]*["'”’)\]]*/g, ws = /\s/;
     let m;
     while ((m = re.exec(text))){
       let s = m.index, e = s + m[0].length;
@@ -185,7 +185,15 @@
       if (e <= s) continue;
       while (e - s > max){
         let cut = text.lastIndexOf(' ', s + max);
-        if (cut <= s) cut = s + max;
+        if (cut <= s) {
+          cut = text.indexOf(' ', s + max);
+          if (cut < 0 || cut >= e) break;
+        }
+        if (e - cut < 45) {
+          const balancedCut = text.lastIndexOf(' ', s + max - 45);
+          if (balancedCut > s) cut = balancedCut;
+          else if (e - s <= max + 45) break;
+        }
         out.push({ start:s, end:cut, text:text.slice(s, cut) });
         s = cut;
         while (s < e && ws.test(text[s])) s++;
@@ -196,9 +204,11 @@
   }
 
   /* ---------- pemutaran ---------- */
-  let queue = [], idx = 0, state = 'idle', spans = [], token = 0, source = '', speechCancelled = false;
+  let queue = [], idx = 0, state = 'idle', spans = [], token = 0, source = '', speechCancelled = false, chunkTimer = null;
 
   function cancelSpeech(){
+    clearTimeout(chunkTimer);
+    chunkTimer = null;
     synth.cancel();
     speechCancelled = true;
   }
@@ -294,7 +304,18 @@
     if (myToken !== token) return;
     say(queue[idx].text, () => {
       if (myToken !== token) return;
-      idx++; next(myToken);
+      const delay = /,[\"'”’)\]]*$/.test(queue[idx].text) ? 180 : 0;
+      const advance = () => {
+        chunkTimer = null;
+        if (myToken !== token) return;
+        if (state === 'paused') {
+          chunkTimer = setTimeout(advance, 100);
+          return;
+        }
+        idx++; next(myToken);
+      };
+      if (delay) chunkTimer = setTimeout(advance, delay);
+      else advance();
     }, e => {
       if (myToken === token) finish('Terjadi kesalahan suara: ' + e.error);
     });
