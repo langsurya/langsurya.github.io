@@ -79,23 +79,94 @@
       return;
     }
     el.bahasa.disabled = el.suara.disabled = false;
-    const langs = [...new Set(voices.map(v => v.lang))].sort((a, b) => a.localeCompare(b));
 
-    langs.forEach(l => {
+    const langList = uniqueLanguageOptions(preferredLangOrder([...new Set(voices.map(v => v.lang))]));
+    langList.forEach(lang => {
       const o = document.createElement('option');
-      o.value = l; o.textContent = l;
+      o.value = lang;
+      o.textContent = labelForLanguage(lang);
       el.bahasa.appendChild(o);
     });
-    const defLang = langs.includes(prevLang) ? prevLang
-      : langs.find(l => l.toLowerCase().startsWith('id')) || langs.find(l => l.toLowerCase().startsWith('en')) || langs[0];
+
+    const defLang = langList.includes(prevLang) ? prevLang
+      : (langList.find(l => l.toLowerCase().startsWith('id')) ||
+         langList.find(l => l.toLowerCase().startsWith('en-us')) ||
+         langList.find(l => l.toLowerCase().startsWith('en')) ||
+         langList[0]);
     el.bahasa.value = defLang;
     fillVoices(prevVoice);
 
-    const adaID = langs.some(l => l.toLowerCase().startsWith('id'));
+    const adaID = langList.some(l => l.toLowerCase().startsWith('id'));
     el.notice.hidden = adaID;
     if (!adaID) el.notice.textContent =
       'Suara bahasa Indonesia belum terpasang di sistem Anda. Di Windows: Settings → Time & language → Speech → Add voices. Di Chrome, suara Google online juga bisa muncul jika terhubung internet.';
   }
+
+  const languageLabels = {
+    'id-ID': 'Indonesia',
+    'id': 'Indonesia',
+    'en-US': 'English (US)',
+    'en-GB': 'English (UK)',
+    'en-AU': 'English (Australia)',
+    'en-CA': 'English (Canada)',
+    'en': 'English',
+    'de-DE': 'Deutsch',
+    'de': 'Deutsch',
+    'fr-FR': 'Français',
+    'fr': 'Français',
+    'es-ES': 'Español',
+    'es': 'Español',
+    'ja-JP': '日本語 (Nihongo)',
+    'ja': '日本語 (Nihongo)',
+    'ko-KR': '한국어 (Hangul)',
+    'ko': '한국어 (Hangul)',
+    'zh-CN': '中文 (Zhōngwén, 简体)',
+    'zh-TW': '中文 (Zhōngwén, 繁體)',
+    'zh-HK': '中文 (Zhōngwén, 香港)',
+    'zh': '中文 (Zhōngwén)',
+    'pt-BR': 'Português (Brasil)',
+    'pt-PT': 'Português (Portugal)',
+    'pt': 'Português',
+    'it-IT': 'Italiano',
+    'it': 'Italiano',
+    'ru-RU': 'Русский (Russkiy)',
+    'ru': 'Русский (Russkiy)',
+    'nl-NL': 'Nederlands',
+    'nl': 'Nederlands',
+    'hi-IN': 'हिन्दी (Hindi)',
+    'hi': 'हिन्दी (Hindi)',
+    'pl-PL': 'Polski (Polish)',
+    'pl': 'Polski (Polish)',
+    'tr-TR': 'Türkçe (Turkish)',
+    'tr': 'Türkçe (Turkish)'
+  };
+
+  function labelForLanguage(lang){
+    return languageLabels[lang] || languageLabels[lang.split('-')[0]] || lang;
+  }
+
+  function preferredLangOrder(langList){
+    return [...langList].sort((a, b) => {
+      const order = ['id-ID', 'en-US', 'en-GB', 'en-AU', 'en-CA', 'de-DE', 'fr-FR', 'es-ES', 'it-IT', 'pt-BR', 'ja-JP', 'ko-KR', 'zh-CN', 'zh-TW', 'zh-HK', 'ru-RU', 'hi-IN', 'pl-PL', 'tr-TR', 'nl-NL'];
+      const ai = order.indexOf(a);
+      const bi = order.indexOf(b);
+      if (ai === -1 && bi === -1) return a.localeCompare(b);
+      if (ai === -1) return 1;
+      if (bi === -1) return -1;
+      return ai - bi;
+    });
+  }
+
+  function uniqueLanguageOptions(langList){
+    const seen = new Set();
+    return langList.filter(lang => {
+      const label = labelForLanguage(lang);
+      if (seen.has(label)) return false;
+      seen.add(label);
+      return true;
+    });
+  }
+
   function fillVoices(prefer){
     const lang = el.bahasa.value;
     const list = voices.filter(v => v.lang === lang);
@@ -106,7 +177,48 @@
       el.suara.appendChild(o);
     });
     if (prefer && list.some(v => v.name === prefer)) el.suara.value = prefer;
+    if (!el.suara.value && list.length) el.suara.selectedIndex = 0;
   }
+
+  function detectLanguageByText(text){
+    const trimmed = (text || '').trim();
+    if (!trimmed || trimmed.length < 40) return null;
+
+    const tokens = (trimmed.toLowerCase().match(/[a-z]+/g) || []).filter(Boolean);
+    if (tokens.length < 6) return null;
+
+    const indoWords = new Set(['yang','dan','untuk','dengan','ini','itu','adalah','akan','dari','ke','di','jika','karena','dapat','saya','kami','kamu','mereka','tidak','bisa','sudah','harus','setiap','semua','juga','dalam','oleh','lebih','apakah','benar']);
+    const engWords = new Set(['the','and','for','with','this','that','from','into','your','you','are','not','can','will','have','there','their','because','when','where','what','about','please','would','could','should','more','than','then','them','they']);
+
+    let idScore = 0;
+    let enScore = 0;
+    tokens.forEach(token => {
+      if (indoWords.has(token)) idScore += 2;
+      if (engWords.has(token)) enScore += 2;
+      if (token.endsWith('ng') || token.endsWith('ny') || token.endsWith('kh') || token.endsWith('sy')) idScore += 1;
+      if (token.endsWith('ed') || token.endsWith('ing') || token.endsWith('tion') || token.endsWith('ly')) enScore += 1;
+    });
+
+    if (idScore === 0 && enScore === 0) return null;
+    if (Math.abs(idScore - enScore) < 2) return null;
+    return idScore > enScore ? 'id' : 'en';
+  }
+
+  function applyDetectedLanguage(){
+    if (!voices.length) return;
+    const detected = detectLanguageByText(el.teks.value);
+    if (!detected) return;
+    const langList = uniqueLanguageOptions(preferredLangOrder([...new Set(voices.map(v => v.lang))]));
+    const target = langList.find(l => l.toLowerCase().startsWith(detected)) ||
+      langList.find(l => l.toLowerCase().startsWith('id')) ||
+      langList.find(l => l.toLowerCase().startsWith('en'));
+    if (!target || el.bahasa.value === target) return;
+    el.bahasa.value = target;
+    fillVoices();
+    store.set('tts:bahasa', el.bahasa.value);
+    store.set('tts:suara', el.suara.value);
+  }
+
   synth.addEventListener('voiceschanged', loadVoices);
   loadVoices();
   let voiceRetryCount = 0;
@@ -187,6 +299,7 @@
     const w = t.trim() ? t.trim().split(/\s+/).length : 0;
     el.hitung.textContent = t.length.toLocaleString('id-ID') + ' karakter · ' + w.toLocaleString('id-ID') + ' kata';
     store.set('tts:draf', t);
+    applyDetectedLanguage();
   }
   el.teks.addEventListener('input', updateCount);
   el.teks.value = store.get('tts:draf', '');
