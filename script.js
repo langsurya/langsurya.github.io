@@ -1,5 +1,5 @@
 (() => {
-  const APP_VERSION = 'web-v2026.10.09-1930';
+  const APP_VERSION = 'web-v2026.10.09-2000';
   const $ = id => document.getElementById(id);
   const el = {
     teks:$('teks'), hitung:$('hitung'), bahasa:$('bahasa'), suara:$('suara'),
@@ -496,7 +496,9 @@
       if (e.error !== 'canceled' && e.error !== 'interrupted') onerror && onerror(e);
     };
     speechCancelled = false;
-    synth.resume();
+    // Aplikasi tidak memakai speechSynthesis.pause(). Memanggil resume()
+    // sebelum setiap kalimat dapat mengubah status sesi media Chrome dan
+    // mengganggu suara Google online yang masih menutup kalimat sebelumnya.
     synth.speak(u);
     // Watchdog dibutuhkan pada Android karena onend kadang hilang. Pada suara
     // Google online desktop, speaking dapat berubah false sesaat saat buffering;
@@ -573,7 +575,10 @@
     if (myToken !== token) return;
     say(queue[idx].text, () => {
       if (myToken !== token) return;
-      const delay = 0;
+      // Beri mesin suara online waktu singkat untuk menutup kanal kalimat
+      // sebelumnya. Pemanggilan speak() langsung dari onend kadang membuat
+      // awal kalimat berikutnya patah atau terdengar terbata-bata di desktop.
+      const delay = matchMedia('(max-width: 600px)').matches ? 0 : 120;
       const advance = () => {
         chunkTimer = null;
         if (myToken !== token) return;
