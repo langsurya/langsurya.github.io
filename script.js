@@ -1,5 +1,5 @@
 (() => {
-  const APP_VERSION = 'web-v2026.10.06-1646';
+  const APP_VERSION = 'web-v2026.10.09-1500';
   const $ = id => document.getElementById(id);
   const el = {
     teks:$('teks'), hitung:$('hitung'), bahasa:$('bahasa'), suara:$('suara'),
@@ -344,8 +344,11 @@
 
   /* ---------- pecah teks menjadi kalimat ---------- */
   // Mengembalikan potongan beserta posisi aslinya agar tampilan pembaca identik dengan teks yang ditempel
-  function chunk(text, max = 180){
-    const out = [], re = /[^.!?;:,\n]+[.!?;:,]*["'”’)\]]*/g, ws = /\s/;
+  // Koma TIDAK memecah potongan: mesin suara memberi jeda koma yang singkat,
+  // jauh lebih cepat daripada jeda antar-ucapan (titik). Kalimat panjang
+  // hanya dipotong bila > max, dan sebisa mungkin di koma.
+  function chunk(text, max = 300){
+    const out = [], re = /[^.!?;:\n]+[.!?;:]*["'”’)\]]*/g, ws = /\s/;
     let m;
     while ((m = re.exec(text))){
       let s = m.index, e = s + m[0].length;
@@ -353,6 +356,13 @@
       while (e > s && ws.test(text[e - 1])) e--;
       if (e <= s) continue;
       while (e - s > max){
+        const comma = text.lastIndexOf(',', s + max);
+        if (comma > s + 60 && e - comma > 30) {
+          out.push({ start:s, end:comma + 1, text:text.slice(s, comma + 1) });
+          s = comma + 1;
+          while (s < e && ws.test(text[s])) s++;
+          continue;
+        }
         let cut = text.lastIndexOf(' ', s + max);
         if (cut <= s) {
           cut = text.indexOf(' ', s + max);
@@ -519,7 +529,7 @@
     if (myToken !== token) return;
     say(queue[idx].text, () => {
       if (myToken !== token) return;
-      const delay = /,[\"'”’)\]]*$/.test(queue[idx].text) ? 180 : 0;
+      const delay = 0;
       const advance = () => {
         chunkTimer = null;
         if (myToken !== token) return;
