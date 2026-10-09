@@ -1,5 +1,5 @@
 (() => {
-  const APP_VERSION = 'web-v2026.10.09-1800';
+  const APP_VERSION = 'web-v2026.10.09-1820';
   const $ = id => document.getElementById(id);
   const el = {
     teks:$('teks'), hitung:$('hitung'), bahasa:$('bahasa'), suara:$('suara'),
@@ -421,6 +421,7 @@
 
   function setState(s){
     state = s;
+    keepAwake(s === 'playing');
     el.player.dataset.state = s;
     const lbl = s === 'playing' ? 'Jeda' : s === 'paused' ? 'Lanjutkan' : 'Putar';
     el.putar.setAttribute('aria-label', lbl);
@@ -468,7 +469,10 @@
     // (Tapi → "api", Mereka → "ka"). Buang kutip/kurung di awal dan beri
     // bantalan jeda pendek di depan agar kata pertama terdengar utuh.
     const clean = String(text).replace(/^[\s"'“”‘’«(\[]+/, '');
-    const u = new SpeechSynthesisUtterance(clean);
+    // NBSP memberi mesin suara sedikit waktu untuk membuka kanal audio sebelum
+    // konsonan pertama. Spasi biasa sering dibuang sepenuhnya oleh engine TTS.
+    const paddedText = '\u00A0\u00A0' + clean;
+    const u = new SpeechSynthesisUtterance(paddedText);
     const v = voices.find(x => x.name === el.suara.value);
     if (v){ u.voice = v; u.lang = v.lang; } else u.lang = el.bahasa.value || 'id-ID';
     u.rate = +el.kecepatan.value; u.pitch = +el.nada.value; u.volume = +el.volume.value;
