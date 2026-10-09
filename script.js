@@ -1,5 +1,5 @@
 (() => {
-  const APP_VERSION = 'web-v2026.10.09-1900';
+  const APP_VERSION = 'web-v2026.10.09-1930';
   const $ = id => document.getElementById(id);
   const el = {
     teks:$('teks'), hitung:$('hitung'), bahasa:$('bahasa'), suara:$('suara'),
@@ -472,10 +472,11 @@
     // (Tapi → "api", Mereka → "ka"). Buang kutip/kurung di awal dan beri
     // bantalan jeda pendek di depan agar kata pertama terdengar utuh.
     const clean = String(text).replace(/^[\s"'“”‘’«(\[]+/, '');
-    // NBSP memberi mesin suara sedikit waktu untuk membuka kanal audio sebelum
-    // konsonan pertama. Spasi biasa sering dibuang sepenuhnya oleh engine TTS.
-    const paddedText = '\u00A0\u00A0' + clean;
-    const u = new SpeechSynthesisUtterance(paddedText);
+    const isMobile = matchMedia('(max-width: 600px)').matches;
+    // Bantalan NBSP hanya diperlukan pada mesin suara mobile. Google online
+    // di desktop dapat memproses bantalan ini sebagai potongan ucapan pendek.
+    const spokenText = isMobile ? '\u00A0\u00A0' + clean : clean;
+    const u = new SpeechSynthesisUtterance(spokenText);
     const v = voices.find(x => x.name === el.suara.value);
     if (v){ u.voice = v; u.lang = v.lang; } else u.lang = el.bahasa.value || 'id-ID';
     u.rate = +el.kecepatan.value; u.pitch = +el.nada.value; u.volume = +el.volume.value;
@@ -497,14 +498,19 @@
     speechCancelled = false;
     synth.resume();
     synth.speak(u);
-    let idle = 0;
-    watch = setInterval(() => {
-      if (ended || speechCancelled) { clearInterval(watch); return; }
-      if (!synth.speaking && !synth.pending) {
-        // beri waktu ekstra jika ucapan belum sempat mulai
-        if (++idle >= (started ? 2 : 6)) done();
-      } else idle = 0;
-    }, 500);
+    // Watchdog dibutuhkan pada Android karena onend kadang hilang. Pada suara
+    // Google online desktop, speaking dapat berubah false sesaat saat buffering;
+    // watchdog lama lalu memajukan antrean sebelum kalimat selesai dan hanya
+    // menyisakan fragmen seperti "ak", "ka", atau "di".
+    if (isMobile) {
+      let idle = 0;
+      watch = setInterval(() => {
+        if (ended || speechCancelled) { clearInterval(watch); return; }
+        if (!synth.speaking && !synth.pending) {
+          if (++idle >= (started ? 2 : 6)) done();
+        } else idle = 0;
+      }, 500);
+    }
     return u;
   }
 
