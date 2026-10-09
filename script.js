@@ -1,5 +1,5 @@
 (() => {
-  const APP_VERSION = 'web-v2026.10.09-1600';
+  const APP_VERSION = 'web-v2026.10.09-1700';
   const $ = id => document.getElementById(id);
   const el = {
     teks:$('teks'), hitung:$('hitung'), bahasa:$('bahasa'), suara:$('suara'),
@@ -392,8 +392,36 @@
     speechCancelled = true;
   }
 
+  /* ---------- jaga perangkat audio tetap aktif ----------
+     Di antara kalimat, output audio (Bluetooth/driver hemat daya) bisa
+     tertidur lalu bangun terlambat, sehingga awal kalimat terpotong
+     ("Me..ngar", "T..pi"). Nada hampir tanpa suara menjaganya tetap aktif. */
+  let keepCtx = null;
+  function keepAwake(on){
+    try {
+      if (on) {
+        if (!keepCtx) {
+          const AC = window.AudioContext || window.webkitAudioContext;
+          if (!AC) return;
+          keepCtx = new AC();
+          const g = keepCtx.createGain();
+          g.gain.value = 0.0005;
+          const osc = keepCtx.createOscillator();
+          osc.frequency.value = 30;
+          osc.connect(g);
+          g.connect(keepCtx.destination);
+          osc.start();
+        }
+        if (keepCtx.state === 'suspended') keepCtx.resume();
+      } else if (keepCtx && keepCtx.state === 'running') {
+        keepCtx.suspend();
+      }
+    } catch {}
+  }
+
   function setState(s){
     state = s;
+    keepAwake(s === 'playing');
     el.player.dataset.state = s;
     const lbl = s === 'playing' ? 'Jeda' : s === 'paused' ? 'Lanjutkan' : 'Putar';
     el.putar.setAttribute('aria-label', lbl);
@@ -441,7 +469,7 @@
     // (Tapi → "api", Mereka → "ka"). Buang kutip/kurung di awal dan beri
     // bantalan jeda pendek di depan agar kata pertama terdengar utuh.
     const clean = String(text).replace(/^[\s"'“”‘’«(\[]+/, '');
-    const u = new SpeechSynthesisUtterance(', ' + clean);
+    const u = new SpeechSynthesisUtterance(clean);
     const v = voices.find(x => x.name === el.suara.value);
     if (v){ u.voice = v; u.lang = v.lang; } else u.lang = el.bahasa.value || 'id-ID';
     u.rate = +el.kecepatan.value; u.pitch = +el.nada.value; u.volume = +el.volume.value;
