@@ -1,5 +1,5 @@
 (() => {
-  const APP_VERSION = 'web-v2026.10.09-1820';
+  const APP_VERSION = 'web-v2026.10.09-1845';
   const $ = id => document.getElementById(id);
   const el = {
     teks:$('teks'), hitung:$('hitung'), bahasa:$('bahasa'), suara:$('suara'),
@@ -382,6 +382,25 @@
     return out;
   }
 
+  // Mesin TTS desktop cenderung tersendat ketika banyak utterance pendek
+  // dibuat berturut-turut. Gabungkan kalimat pendek agar kanal suara tidak
+  // perlu dimulai ulang pada setiap titik, tetapi pertahankan potongan cukup
+  // pendek supaya Chrome tidak menghentikan utterance yang terlalu panjang.
+  function mergeDesktopChunks(parts, max = 420){
+    if (matchMedia('(max-width: 600px)').matches || parts.length < 2) return parts;
+    const merged = [];
+    for (const part of parts) {
+      const previous = merged[merged.length - 1];
+      if (previous && part.end - previous.start <= max) {
+        previous.end = part.end;
+        previous.text = source.slice(previous.start, previous.end);
+      } else {
+        merged.push({ ...part });
+      }
+    }
+    return merged;
+  }
+
   /* ---------- pemutaran ---------- */
   let queue = [], idx = 0, state = 'idle', spans = [], token = 0, source = '', speechCancelled = false, chunkTimer = null;
 
@@ -598,7 +617,7 @@
     if (!source.trim()){ el.status.textContent = 'Isi teks dulu sebelum memutar.'; el.teks.focus(); return; }
     token++;
     if (!speechCancelled && (synth.speaking || synth.pending)) cancelSpeech();
-    queue = chunk(source); idx = 0;
+    queue = mergeDesktopChunks(chunk(source)); idx = 0;
     renderReader(); setState('playing');
     addHistory(source.trim());
     next(token);
