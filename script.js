@@ -1,5 +1,5 @@
 (() => {
-  const APP_VERSION = 'web-v2026.10.09-1500';
+  const APP_VERSION = 'web-v2026.10.09-1600';
   const $ = id => document.getElementById(id);
   const el = {
     teks:$('teks'), hitung:$('hitung'), bahasa:$('bahasa'), suara:$('suara'),
@@ -437,7 +437,11 @@
   }
 
   function say(text, onend, onerror){
-    const u = new SpeechSynthesisUtterance(text);
+    // Suara (terutama Google online) sering memotong suku kata pertama
+    // (Tapi → "api", Mereka → "ka"). Buang kutip/kurung di awal dan beri
+    // bantalan jeda pendek di depan agar kata pertama terdengar utuh.
+    const clean = String(text).replace(/^[\s"'“”‘’«(\[]+/, '');
+    const u = new SpeechSynthesisUtterance(', ' + clean);
     const v = voices.find(x => x.name === el.suara.value);
     if (v){ u.voice = v; u.lang = v.lang; } else u.lang = el.bahasa.value || 'id-ID';
     u.rate = +el.kecepatan.value; u.pitch = +el.nada.value; u.volume = +el.volume.value;
