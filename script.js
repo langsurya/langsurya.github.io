@@ -1,5 +1,5 @@
 (() => {
-  const APP_VERSION = 'web-v2026.10.09-1700';
+  const APP_VERSION = 'web-v2026.10.09-1800';
   const $ = id => document.getElementById(id);
   const el = {
     teks:$('teks'), hitung:$('hitung'), bahasa:$('bahasa'), suara:$('suara'),
@@ -421,7 +421,6 @@
 
   function setState(s){
     state = s;
-    keepAwake(s === 'playing');
     el.player.dataset.state = s;
     const lbl = s === 'playing' ? 'Jeda' : s === 'paused' ? 'Lanjutkan' : 'Putar';
     el.putar.setAttribute('aria-label', lbl);
