@@ -1,5 +1,5 @@
 (() => {
-  const APP_VERSION = 'web-v2026.10.09-2000';
+  const APP_VERSION = 'web-v2026.10.12-1100';
   const $ = id => document.getElementById(id);
   const el = {
     teks:$('teks'), hitung:$('hitung'), bahasa:$('bahasa'), suara:$('suara'),
@@ -419,12 +419,41 @@
     } catch {}
   }
 
+  /* ---------- tahan layar tetap menyala selama membaca ---------- */
+  let screenWakeLock = null;
+
+  async function holdScreenAwake(on){
+    if (!('wakeLock' in navigator)) return;
+
+    if (!on) {
+      if (screenWakeLock) {
+        const lock = screenWakeLock;
+        screenWakeLock = null;
+        try { await lock.release(); } catch {}
+      }
+      return;
+    }
+
+    if (screenWakeLock || document.visibilityState !== 'visible') return;
+    try {
+      screenWakeLock = await navigator.wakeLock.request('screen');
+      screenWakeLock.addEventListener('release', () => {
+        screenWakeLock = null;
+      }, { once:true });
+    } catch {}
+  }
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && state === 'playing') holdScreenAwake(true);
+  });
+
   function setState(s){
     state = s;
     // Oscillator keep-awake membantu perangkat mobile, tetapi pada audio
     // desktop tertentu justru berebut kanal dengan speech synthesis dan
     // membuat suara patah-patah.
     keepAwake(s === 'playing' && matchMedia('(max-width: 600px)').matches);
+    holdScreenAwake(s === 'playing');
     el.player.dataset.state = s;
     const lbl = s === 'playing' ? 'Jeda' : s === 'paused' ? 'Lanjutkan' : 'Putar';
     el.putar.setAttribute('aria-label', lbl);
@@ -467,11 +496,18 @@
     el.pCount.textContent = queue.length ? Math.min(idx + 1, queue.length) + ' / ' + queue.length : '';
   }
 
+  function normalizeTextForSpeech(text){
+    // Mesin TTS tertentu menganggap kata kapital panjang sebagai singkatan
+    // lalu mengejanya huruf demi huruf. Ubah hanya salinan yang diucapkan;
+    // teks asli dan tampilan pembaca tetap dipertahankan.
+    return String(text).replace(/\b[A-Z]{4,}\b/g, word => word.toLowerCase());
+  }
+
   function say(text, onend, onerror){
     // Suara (terutama Google online) sering memotong suku kata pertama
     // (Tapi → "api", Mereka → "ka"). Buang kutip/kurung di awal dan beri
     // bantalan jeda pendek di depan agar kata pertama terdengar utuh.
-    const clean = String(text).replace(/^[\s"'“”‘’«(\[]+/, '');
+    const clean = normalizeTextForSpeech(text).replace(/^[\s"'“”‘’«(\[]+/, '');
     const isMobile = matchMedia('(max-width: 600px)').matches;
     // Bantalan NBSP hanya diperlukan pada mesin suara mobile. Google online
     // di desktop dapat memproses bantalan ini sebagai potongan ucapan pendek.
