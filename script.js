@@ -1,5 +1,5 @@
 (() => {
-  const APP_VERSION = 'web-v2026.10.12-1100';
+  const APP_VERSION = 'web-v2026.10.12-1042';
   const $ = id => document.getElementById(id);
   const el = {
     teks:$('teks'), hitung:$('hitung'), bahasa:$('bahasa'), suara:$('suara'),
@@ -421,31 +421,65 @@
 
   /* ---------- tahan layar tetap menyala selama membaca ---------- */
   let screenWakeLock = null;
+  let wakeLockMessage = '';
+
+  function setWakeLockMessage(message, warning = false){
+    wakeLockMessage = message;
+    el.player.dataset.wakeLock = warning ? 'warning' : message ? 'active' : 'off';
+    el.player.title = message;
+  }
 
   async function holdScreenAwake(on){
-    if (!('wakeLock' in navigator)) return;
-
     if (!on) {
       if (screenWakeLock) {
         const lock = screenWakeLock;
         screenWakeLock = null;
         try { await lock.release(); } catch {}
       }
+      setWakeLockMessage('');
       return;
     }
 
-    if (screenWakeLock || document.visibilityState !== 'visible') return;
+    if (!window.isSecureContext) {
+      setWakeLockMessage('Layar tidak dapat ditahan: halaman harus dibuka melalui HTTPS.', true);
+      return false;
+    }
+
+    if (!('wakeLock' in navigator)) {
+      setWakeLockMessage('Opera ini tidak menyediakan Screen Wake Lock. Gunakan Chrome atau Edge agar layar tetap menyala.', true);
+      return false;
+    }
+
+    if (screenWakeLock) return true;
+    if (document.visibilityState !== 'visible') return false;
     try {
       screenWakeLock = await navigator.wakeLock.request('screen');
+      setWakeLockMessage('Layar ditahan tetap menyala selama pembacaan.');
       screenWakeLock.addEventListener('release', () => {
         screenWakeLock = null;
+        if (state === 'playing' && document.visibilityState === 'visible') {
+          setWakeLockMessage('Penahan layar dilepas oleh browser atau sistem.', true);
+        } else {
+          setWakeLockMessage('');
+        }
       }, { once:true });
-    } catch {}
+      return true;
+    } catch (error) {
+      const reason = error && error.name ? ' (' + error.name + ')' : '';
+      setWakeLockMessage('Screen Wake Lock ditolak oleh browser atau sistem' + reason + '.', true);
+      return false;
+    }
   }
 
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible' && state === 'playing') holdScreenAwake(true);
   });
+
+  // Beberapa browser Chromium turunan hanya mengizinkan permintaan Wake Lock
+  // langsung dari interaksi pengguna. Coba lagi pada sentuhan saat membaca.
+  document.addEventListener('pointerdown', () => {
+    if (state === 'playing' && !screenWakeLock) holdScreenAwake(true);
+  }, { passive:true });
 
   function setState(s){
     state = s;
@@ -463,6 +497,7 @@
     el.mundur.disabled = el.maju.disabled = s === 'idle';
     if (s === 'paused') el.pLabel.textContent = 'Dijeda';
     if (s === 'playing') startClock(); else stopClock();
+    if (s === 'playing' && wakeLockMessage) el.status.textContent = wakeLockMessage;
   }
 
   /* ---------- countdown sisa waktu ---------- */

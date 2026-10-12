@@ -66,6 +66,8 @@ button.danger{color:var(--danger)}
   border:1px solid var(--line);border-radius:14px;
   background:linear-gradient(135deg,color-mix(in srgb,var(--accent) 8%,var(--panel)),var(--panel));
 }
+.player[data-wake-lock="active"]{box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 32%,transparent)}
+.player[data-wake-lock="warning"]{box-shadow:0 0 0 2px color-mix(in srgb,var(--danger) 38%,transparent)}
 .play-btn{
   position:relative;flex:none;width:56px;height:56px;padding:0;border-radius:50%;
   display:grid;place-items:center;border:0;
