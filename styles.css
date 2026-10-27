@@ -21,6 +21,9 @@ body{
   padding:24px 16px 48px;
 }
 main{max-width:860px;margin:0 auto}
+.tts-nav{margin-bottom:12px}
+.tts-nav a{color:var(--accent);font-size:.9rem;font-weight:650;text-decoration:none}
+.tts-nav a:hover{text-decoration:underline}
 header{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:18px}
 h1{font-size:1.6rem;margin:0;letter-spacing:-.01em}
 .sub{margin:2px 0 0;color:var(--muted);font-size:.95rem}

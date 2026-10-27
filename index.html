@@ -1,146 +1,71 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Pembaca Teks</title>
-<link rel="stylesheet" href="styles.css?v=20261006-1646">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Kumpulan panduan, catatan, cerita, dan alat bermanfaat dari Langsurya.">
+  <meta name="theme-color" content="#0b1220">
+  <title>Langsurya — Panduan, Catatan & Hal Bermanfaat</title>
+  <link rel="stylesheet" href="assets/css/site.css?v=20261027-12">
 </head>
 <body>
-<main>
-  <header>
-    <div>
-      <h1>Text-to-Speech Reader</h1>
-      <p class="sub">Masukkan atau tempel teks, lalu dengarkan hasilnya dibacakan dengan suara yang natural dan mudah diatur.</p>
+  <header class="site-header article-header">
+    <a class="brand" href="./" aria-label="Langsurya, beranda">
+      <span class="brand-mark" aria-hidden="true">L</span>
+      <span>Langsurya</span>
+    </a>
+    <div class="header-actions">
+      <nav class="main-nav" aria-label="Navigasi utama">
+        <a href="./" aria-current="page"><span class="nav-dot" aria-hidden="true"></span>Beranda</a>
+        <a href="#daftar-artikel">Panduan & Catatan</a>
+        <a class="nav-tool" href="tts/">Pembaca teks <span aria-hidden="true">↗</span></a>
+      </nav>
+      <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Aktifkan mode gelap" aria-pressed="false" title="Mode gelap"><span class="theme-icon" aria-hidden="true">☾</span></button>
     </div>
-    <button id="tema" class="small" type="button" aria-label="Ganti tema">Tema</button>
   </header>
 
-  <section class="card">
-    <label for="teks">Teks yang akan dibacakan</label>
-    <textarea id="teks" placeholder="Tulis atau tempel teks di sini..."></textarea>
-    <div class="meta">
-      <span id="hitung">0 karakter · 0 kata</span>
-      <span>
-        <button id="muat" class="small" type="button">Buka file .txt</button>
-        <button id="bersih" class="small" type="button">Kosongkan</button>
-        <input id="berkas" type="file" accept=".txt,text/plain" hidden>
-      </span>
-    </div>
-
-    <div class="grid">
-      <div>
-        <label for="bahasa">Bahasa</label>
-        <select id="bahasa"></select>
-      </div>
-      <div>
-        <label for="suara">Suara</label>
-        <select id="suara"></select>
-      </div>
-    </div>
-
-    <div id="panel" class="controls" role="dialog" aria-label="Pengaturan suara" hidden>
-      <div class="panel-head">
-        <strong>Pengaturan suara</strong>
-        <button id="uji" class="ghost-btn" type="button">Uji suara</button>
-        <button id="tutup" class="icon-btn" type="button" aria-label="Tutup pengaturan">✕</button>
-      </div>
-      <div class="ctl">
-        <div class="ctl-head">
-          <label for="kecepatan">Kecepatan</label>
-          <button class="reset" type="button" data-target="kecepatan" hidden>Reset</button>
-          <output id="o-kecepatan" class="val" for="kecepatan">1×</output>
-        </div>
-        <div class="ctl-row">
-          <button class="step" type="button" data-target="kecepatan" data-dir="-1" aria-label="Perlambat">−</button>
-          <input id="kecepatan" type="range" min="0.5" max="2" step="0.05" value="1">
-          <button class="step" type="button" data-target="kecepatan" data-dir="1" aria-label="Percepat">+</button>
-        </div>
-        <div class="presets">
-          <button class="chip" type="button" data-target="kecepatan" data-value="0.75">0.75×</button>
-          <button class="chip" type="button" data-target="kecepatan" data-value="1">1×</button>
-          <button class="chip" type="button" data-target="kecepatan" data-value="1.25">1.25×</button>
-          <button class="chip" type="button" data-target="kecepatan" data-value="1.5">1.5×</button>
-          <button class="chip" type="button" data-target="kecepatan" data-value="2">2×</button>
+  <main class="site-main">
+    <section class="intro" aria-labelledby="hero-title">
+      <div class="hero-copy">
+        <p class="eyebrow"><span></span> RUANG BERBAGI & BERTUMBUH</p>
+        <h1 id="hero-title">Temukan hal baru yang <em>bermanfaat.</em></h1>
+        <p class="hero-lead">Ruang untuk berbagi panduan, catatan, pengalaman, dan berbagai hal menarik yang dapat dipelajari serta digunakan oleh siapa saja.</p>
+        <div class="hero-actions">
+          <a class="button primary" href="#daftar-artikel">Mulai menjelajah <span aria-hidden="true">↓</span></a>
+          <a class="button secondary" href="tts/">Coba pembaca teks <span aria-hidden="true">→</span></a>
         </div>
       </div>
+      <aside class="hero-panel" aria-label="Ruang berbagi Langsurya">
+        <div class="panel-top"><span>LANGSURYA</span><span class="status-dot">TERBUKA</span></div>
+        <div class="terminal-art" aria-hidden="true">
+          <span class="prompt">›</span> <span class="command">temukan hal baru</span><br>
+          <span class="output">Baca panduan praktis.</span><br>
+          <span class="output">Simpan wawasan berguna.</span><br>
+          <span class="success">✓ terus bertumbuh</span>
+        </div>
+        <div class="topic-list">
+          <span>Panduan</span><span>Catatan</span><span>Cerita</span><span>Alat</span>
+        </div>
+      </aside>
+    </section>
 
-      <div class="ctl">
-        <div class="ctl-head">
-          <label for="nada">Nada</label>
-          <button class="reset" type="button" data-target="nada" hidden>Reset</button>
-          <output id="o-nada" class="val" for="nada">Normal</output>
-        </div>
-        <div class="ctl-row">
-          <button class="step" type="button" data-target="nada" data-dir="-1" aria-label="Turunkan nada">−</button>
-          <input id="nada" type="range" min="0" max="2" step="0.1" value="1">
-          <button class="step" type="button" data-target="nada" data-dir="1" aria-label="Naikkan nada">+</button>
-        </div>
-        <div class="presets">
-          <button class="chip" type="button" data-target="nada" data-value="0.6">Rendah</button>
-          <button class="chip" type="button" data-target="nada" data-value="1">Normal</button>
-          <button class="chip" type="button" data-target="nada" data-value="1.4">Tinggi</button>
-        </div>
+    <section class="articles-section" aria-labelledby="daftar-artikel">
+      <div class="section-heading">
+        <div><p class="section-kicker">JELAJAHI</p><h2 id="daftar-artikel">Panduan & catatan terbaru</h2></div>
+        <span id="article-count" aria-live="polite"></span>
       </div>
-
-      <div class="ctl">
-        <div class="ctl-head">
-          <label for="volume">Volume</label>
-          <button class="reset" type="button" data-target="volume" hidden>Reset</button>
-          <output id="o-volume" class="val" for="volume">100%</output>
-        </div>
-        <div class="ctl-row">
-          <button class="step" type="button" data-target="volume" data-dir="-1" aria-label="Kecilkan volume">−</button>
-          <input id="volume" type="range" min="0" max="1" step="0.05" value="1">
-          <button class="step" type="button" data-target="volume" data-dir="1" aria-label="Besarkan volume">+</button>
-        </div>
-        <div class="presets">
-          <button class="chip" type="button" data-target="volume" data-value="0.25">25%</button>
-          <button class="chip" type="button" data-target="volume" data-value="0.5">50%</button>
-          <button class="chip" type="button" data-target="volume" data-value="0.75">75%</button>
-          <button class="chip" type="button" data-target="volume" data-value="1">100%</button>
-        </div>
+      <div id="article-list" class="article-list">
+        <p class="loading">Memuat artikel...</p>
       </div>
-    </div>
+    </section>
+  </main>
 
-    <div id="player" class="player" data-state="idle">
-      <button id="mundur" class="icon-btn skip-btn" type="button" aria-label="Skip Backward" data-tip="Skip Backward" disabled>
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5V2L7 6l5 4V7a6 6 0 1 1-6 6H4a8 8 0 1 0 8-8z"/><text x="12" y="16.5" text-anchor="middle">10</text></svg>
-      </button>
-      <button id="putar" class="play-btn" type="button" aria-label="Putar" title="Putar (Ctrl+Enter)">
-        <svg class="i-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></svg>
-        <svg class="i-pause" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1.2"/><rect x="14" y="5" width="4" height="14" rx="1.2"/></svg>
-      </button>
-      <button id="maju" class="icon-btn skip-btn" type="button" aria-label="Skip Forward" data-tip="Skip Forward" disabled>
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5V2l5 4-5 4V7a6 6 0 1 0 6 6h2a8 8 0 1 1-8-8z"/><text x="12" y="16.5" text-anchor="middle">10</text></svg>
-      </button>
-      <div class="p-main">
-        <div class="p-top">
-          <span id="p-label" class="p-label">Siap diputar</span>
-          <span class="eq" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
-          <span id="p-count" class="p-count"></span>
-          <span id="p-time" class="p-time" title="Perkiraan sisa waktu">--:--</span>
-        </div>
-        <div class="p-track"><div id="p-bar" class="p-bar"></div></div>
-      </div>
-      <button id="berhenti" class="icon-btn danger" type="button" aria-label="Berhenti" title="Berhenti (Esc)" disabled>
-        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2.5"/></svg>
-      </button>
-      <button id="atur" class="ghost-btn" type="button" aria-expanded="false" aria-controls="panel" title="Kecepatan, nada, volume">⚙ <span id="atur-info">1× · 100%</span></button>
-    </div>
-
-    <div id="status" class="status" role="status" aria-live="polite"></div>
-    <div id="app-version" class="small" aria-live="polite">Versi web: memuat…</div>
-    <div id="notice" class="notice" hidden></div>
-    <div id="reader" class="reader" hidden aria-label="Teks yang sedang dibacakan"></div>
-  </section>
-
-  <section class="card history">
-    <h2>Riwayat teks</h2>
-    <ul id="riwayat"></ul>
-  </section>
-</main>
-
-<script src="script.js?v=20261012-1042"></script>
+  <footer>
+    <div><strong>Langsurya</strong><span>Berbagi hal baik untuk terus bertumbuh.</span></div>
+    <div class="footer-links"><a href="./">Beranda</a><a href="#daftar-artikel">Panduan & Catatan</a><a href="tts/">Alat</a></div>
+  </footer>
+  <button id="back-to-top" class="back-to-top" type="button" aria-label="Kembali ke atas" title="Kembali ke atas"><span aria-hidden="true">↑</span></button>
+  <script src="assets/js/site-ui.js?v=20261027-1" defer></script>
+  <script src="assets/js/articles.js?v=20261027-3" defer></script>
 </body>
 </html>

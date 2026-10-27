@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "articles": [
+    {
+        "slug": "memahami-kerentanan-kritis-php2shell-dan-cara-patching-server",
+        "path": "2026/10/php2shell.md",
+        "title": "Memahami Kerentanan Kritis PHP2Shell (CVE-2026-109618 & CVE-2026-109619) dan Cara Mengamankan Server Linux",
+        "date": "2026-10-27",
+        "updated": "2026-10-27",
+        "category": "Cybersecurity",
+        "type": "Artikel",
+        "tags": ["php2shell", "cve-2026-109618", "cve-2026-109619", "php", "ubuntu", "sysadmin", "keamanan-server"],
+        "status": "published",
+        "description": "Penjelasan lengkap dan mudah dipahami mengenai celah keamanan kritis PHP2Shell pada mesin PHP, cara kerjanya, serta panduan langkah demi langkah menambal server Ubuntu/Debian."
+    },
+    {
+      "slug": "patch-node2shell",
+      "path": "2026/10/patch-node2shell.md",
+      "title": "Node2Shell: Risiko, Deteksi, dan Cara Melakukan Patch",
+      "date": "2026-10-27",
+      "updated": "2026-10-27",
+      "category": "Keamanan Aplikasi",
+      "type": "Panduan",
+      "tags": ["nodejs", "keamanan", "patch"],
+      "status": "published",
+      "description": "Panduan defensif untuk mengenali jalur risiko Node2Shell, memeriksa indikator kompromi, dan memperbaiki aplikasi serta runtime Node.js."
+    },
+    {
+      "slug": "selamat-datang",
+      "path": "2026/10/selamat-datang.md",
+      "title": "Selamat Datang di Langsurya",
+      "date": "2026-10-27",
+      "updated": "2026-10-27",
+      "category": "Catatan",
+      "type": "Tulisan",
+      "tags": ["langsurya", "pengantar"],
+      "status": "published",
+      "description": "Mengenal Langsurya, ruang untuk menemukan panduan praktis, catatan, pengalaman, dan alat yang bermanfaat."
+    }
+  ]
+}
