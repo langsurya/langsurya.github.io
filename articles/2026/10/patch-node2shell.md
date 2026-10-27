@@ -1,13 +1,13 @@
 ---
-title: "Node2Shell: Risiko, Deteksi, dan Cara Melakukan Patch"
+title: "Mengenal dan Menambal Node2Shell (CVE-2026-111497) di Node.js"
 slug: patch-node2shell
 date: 2026-10-27
 updated: 2026-10-27
-category: Keamanan Aplikasi
-type: Panduan
-tags: nodejs, keamanan, patch
+category: Cybersecurity
+type: Artikel
+tags: node2shell, http2shell, cve-2026-111497, nodejs, brotli, rce, patching, keamanan-server
 status: published
-description: Panduan defensif untuk mengenali jalur risiko Node2Shell, memeriksa indikator kompromi, dan memperbaiki aplikasi serta runtime Node.js.
+description: Penjelasan lengkap tentang celah kritis Node2Shell pada decoder Brotli di Node.js, jalur eksploitasi, versi terdampak, cara audit dan patching, serta mitigasi sementara untuk server produksi.
 ---
 # Mengenal dan Menambal Celah Keamanan "Node2Shell" (CVE-2026-111497) di Node.js
 
