@@ -110,6 +110,10 @@ footer>div:first-child{display:flex;flex-direction:column;gap:2px}footer strong{
 [data-reading-theme="dark"] .article-body blockquote{border-color:#2c4771;border-left-color:var(--blue);background:#14233b;color:#bfcaDA}
 [data-reading-theme="dark"] .article-body code{background:#202c3f;color:#dbeafe}
 [data-reading-theme="dark"] .article-body pre{border-color:#344158;background:#080e19}
+[data-reading-theme="dark"] .article-body table{border-color:#344158;background:#111b2b}
+[data-reading-theme="dark"] .article-body th{border-color:#344158;background:#17243a;color:#edf4ff}
+[data-reading-theme="dark"] .article-body td{border-color:#344158;color:#d9e2ef}
+[data-reading-theme="dark"] .article-body tbody tr:nth-child(even){background:#142033}
 [data-reading-theme="dark"] .hero-lead,[data-reading-theme="dark"] .article-card p{color:#aab7c9}
 [data-reading-theme="dark"] .button.secondary{border-color:#314158;background:rgba(21,32,51,.8);color:#edf4ff}
 [data-reading-theme="dark"] .button.secondary:hover{background:#1b2940}
@@ -145,6 +149,14 @@ footer>div:first-child{display:flex;flex-direction:column;gap:2px}footer strong{
 .article-body code{padding:2px 5px;border-radius:4px;background:#eef1f5;font-family:"SFMono-Regular",Consolas,monospace;font-size:.88em}
 .article-body pre{overflow:auto;margin:28px 0;padding:20px;color:#f4f1e8}
 .article-body pre code{padding:0;background:none}
+.article-body .table-scroll{overflow-x:auto;margin:28px 0;border:1px solid var(--border);border-radius:12px;scrollbar-width:thin;-webkit-overflow-scrolling:touch}
+.article-body table{width:100%;min-width:620px;border-collapse:collapse;background:#fff;font-size:.94rem;line-height:1.5}
+.article-body th,.article-body td{padding:13px 15px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);vertical-align:top}
+.article-body th:last-child,.article-body td:last-child{border-right:0}
+.article-body tbody tr:last-child td{border-bottom:0}
+.article-body th{background:#f3f6fa;color:var(--navy);font-weight:750}
+.article-body tbody tr:nth-child(even){background:#f8fafc}
+.article-body td code,.article-body th code{white-space:nowrap}
 .loading,.error,.empty-state{padding:28px 0;color:var(--subtle)}
 .article-body h1{font-family:Georgia,"Times New Roman",serif;color:var(--navy)}
 .article-body h2{padding-top:8px;color:var(--navy);font-family:Georgia,"Times New Roman",serif}

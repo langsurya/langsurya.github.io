@@ -99,7 +99,44 @@
       flushBlockquote();
     };
 
-    lines.forEach(line => {
+    const splitTableRow = line => {
+      const trimmed = line.trim().replace(/^\|/, '').replace(/\|$/, '');
+      const cells = [];
+      let cell = '';
+      let escaped = false;
+
+      for (const character of trimmed) {
+        if (escaped) {
+          cell += character;
+          escaped = false;
+        } else if (character === '\\') {
+          cell += character;
+          escaped = true;
+        } else if (character === '|') {
+          cells.push(cell.trim());
+          cell = '';
+        } else {
+          cell += character;
+        }
+      }
+
+      cells.push(cell.trim());
+      return cells;
+    };
+
+    const tableSeparator = line => {
+      if (!line || !line.includes('|')) return null;
+      const cells = splitTableRow(line);
+      if (!cells.length || !cells.every(cell => /^:?-{3,}:?$/.test(cell))) return null;
+      return cells.map(cell => cell.startsWith(':') && cell.endsWith(':')
+        ? 'center'
+        : cell.endsWith(':')
+          ? 'right'
+          : 'left');
+    };
+
+    for (let lineIndex = 0; lineIndex < lines.length; lineIndex += 1) {
+      const line = lines[lineIndex];
       const fence = line.match(/^```\s*([\w-]*)\s*$/);
       if (fence) {
         if (!inCodeBlock) {
@@ -114,12 +151,12 @@
           codeLanguage = '';
           codeLines = [];
         }
-        return;
+        continue;
       }
 
       if (inCodeBlock) {
         codeLines.push(line);
-        return;
+        continue;
       }
 
       const quote = line.match(/^>\s?(.*)$/);
@@ -127,19 +164,45 @@
         flushParagraph();
         closeList();
         blockquote.push(quote[1]);
-        return;
+        continue;
       }
       flushBlockquote();
 
       if (!line.trim()) {
         flushFlow();
-        return;
+        continue;
+      }
+
+      const alignments = tableSeparator(lines[lineIndex + 1]);
+      if (line.includes('|') && alignments) {
+        flushFlow();
+        const headers = splitTableRow(line);
+        const columnCount = headers.length;
+        const headerHtml = headers.map((cell, index) =>
+          `<th scope="col" style="text-align:${alignments[index] || 'left'}">${inline(cell)}</th>`
+        ).join('');
+        const rows = [];
+
+        lineIndex += 2;
+        while (lineIndex < lines.length && lines[lineIndex].trim() && lines[lineIndex].includes('|')) {
+          const cells = splitTableRow(lines[lineIndex]);
+          while (cells.length < columnCount) cells.push('');
+          const rowHtml = cells.slice(0, columnCount).map((cell, index) =>
+            `<td style="text-align:${alignments[index] || 'left'}">${inline(cell)}</td>`
+          ).join('');
+          rows.push(`<tr>${rowHtml}</tr>`);
+          lineIndex += 1;
+        }
+
+        lineIndex -= 1;
+        html.push(`<div class="table-scroll" role="region" aria-label="Tabel artikel" tabindex="0"><table><thead><tr>${headerHtml}</tr></thead><tbody>${rows.join('')}</tbody></table></div>`);
+        continue;
       }
 
       if (/^\s*(---+|___+|\*\*\*+)\s*$/.test(line)) {
         flushFlow();
         html.push('<hr>');
-        return;
+        continue;
       }
 
       const heading = line.match(/^(#{1,6})\s+(.+)$/);
@@ -147,7 +210,7 @@
         flushFlow();
         const level = heading[1].length;
         html.push(`<h${level}>${inline(heading[2])}</h${level}>`);
-        return;
+        continue;
       }
 
       const unorderedItem = line.match(/^\s*[-*+]\s+(.+)$/);
@@ -161,12 +224,12 @@
           html.push(`<${listType}>`);
         }
         html.push(`<li>${inline((unorderedItem || orderedItem)[1])}</li>`);
-        return;
+        continue;
       }
 
       closeList();
       paragraph.push(line.trim());
-    });
+    }
 
     if (inCodeBlock) {
       const languageClass = codeLanguage ? ` class="language-${escapeHtml(codeLanguage)}"` : '';
