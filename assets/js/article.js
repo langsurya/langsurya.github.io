@@ -38,6 +38,14 @@
     return result;
   };
 
+  // Deteksi teks Arab (mis. ayat/hadis) agar ditampilkan kanan-ke-kiri
+  const isArabic = text => {
+    const letters = String(text).replace(/[\s\p{P}\d]/gu, '');
+    const arabic = (letters.match(/[\u0600-\u06FF\u0750-\u077F\uFB50-\uFDFF\uFE70-\uFEFF]/g) || []).length;
+    return letters.length > 0 && arabic / letters.length > 0.5;
+  };
+  const arabicAttrs = ' class="arabic" dir="rtl" lang="ar"';
+
   const formatDate = value => new Intl.DateTimeFormat('id-ID', {
     day: 'numeric',
     month: 'long',
@@ -76,7 +84,8 @@
 
     const flushParagraph = () => {
       if (!paragraph.length) return;
-      html.push(`<p>${inline(paragraph.join(' '))}</p>`);
+      const text = paragraph.join(' ');
+      html.push(`<p${isArabic(text) ? arabicAttrs : ''}>${inline(text)}</p>`);
       paragraph = [];
     };
 
@@ -89,7 +98,7 @@
     const flushBlockquote = () => {
       if (!blockquote.length) return;
       const content = blockquote.map(line => inline(line)).join('<br>');
-      html.push(`<blockquote>${content}</blockquote>`);
+      html.push(`<blockquote${isArabic(blockquote.join(' ')) ? arabicAttrs : ''}>${content}</blockquote>`);
       blockquote = [];
     };
 
@@ -135,23 +144,37 @@
           : 'left');
     };
 
+    // Fence bisa ``` atau ~~~ (minimal 3). Fence penutup harus karakter yang sama
+    // dan minimal sepanjang pembuka, sehingga ```` bisa membungkus contoh ```.
+    let fenceMarker = '';
+    const renderCodeBlock = () => {
+      const lang = escapeHtml(codeLanguage);
+      const languageClass = lang ? ` class="language-${lang}"` : '';
+      const label = `<span class="code-lang">${lang || 'kode'}</span>`;
+      html.push(`<div class="code-block"><div class="code-head">${label}<button type="button" class="code-copy">Salin</button></div><pre><code${languageClass}>${window.highlightCode ? window.highlightCode(codeLines.join('\n'), codeLanguage) : escapeHtml(codeLines.join('\n'))}</code></pre></div>`);
+    };
+
     for (let lineIndex = 0; lineIndex < lines.length; lineIndex += 1) {
       const line = lines[lineIndex];
-      const fence = line.match(/^```\s*([\w-]*)\s*$/);
-      if (fence) {
-        if (!inCodeBlock) {
+      if (!inCodeBlock) {
+        const open = line.match(/^ {0,3}(`{3,}|~{3,})\s*([\w+#.-]*)[^`]*$/);
+        if (open) {
           flushFlow();
           inCodeBlock = true;
-          codeLanguage = fence[1] || '';
+          fenceMarker = open[1];
+          codeLanguage = open[2] || '';
           codeLines = [];
-        } else {
-          const languageClass = codeLanguage ? ` class="language-${escapeHtml(codeLanguage)}"` : '';
-          html.push(`<pre><code${languageClass}>${escapeHtml(codeLines.join('\n'))}</code></pre>`);
+          continue;
+        }
+      } else {
+        const close = line.match(/^ {0,3}(`{3,}|~{3,})\s*$/);
+        if (close && close[1][0] === fenceMarker[0] && close[1].length >= fenceMarker.length) {
+          renderCodeBlock();
           inCodeBlock = false;
           codeLanguage = '';
           codeLines = [];
+          continue;
         }
-        continue;
       }
 
       if (inCodeBlock) {
@@ -231,14 +254,23 @@
       paragraph.push(line.trim());
     }
 
-    if (inCodeBlock) {
-      const languageClass = codeLanguage ? ` class="language-${escapeHtml(codeLanguage)}"` : '';
-      html.push(`<pre><code${languageClass}>${escapeHtml(codeLines.join('\n'))}</code></pre>`);
-    }
+    if (inCodeBlock) renderCodeBlock();
     flushFlow();
 
     return html.join('');
   }
+
+  // Tombol salin pada blok kode
+  document.addEventListener('click', event => {
+    const button = event.target.closest('.code-copy');
+    if (!button) return;
+    const code = button.closest('.code-block')?.querySelector('code');
+    if (!code || !navigator.clipboard) return;
+    navigator.clipboard.writeText(code.textContent).then(() => {
+      button.textContent = 'Tersalin';
+      setTimeout(() => { button.textContent = 'Salin'; }, 1500);
+    });
+  });
 
   function showNotFound() {
     document.title = 'Artikel tidak ditemukan | Langsurya';
@@ -271,6 +303,44 @@
     relatedContainer.hidden = false;
   }
 
+  // Simpan posisi baca per artikel agar refresh kembali ke bagian yang sama.
+  // Artikel dimuat lewat JavaScript, jadi pemulihan scroll bawaan browser tidak bekerja.
+  if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+  const scrollKey = `scroll:${slug}`;
+  let scrollReady = false;
+  let scrollTimer = null;
+
+  const saveScroll = () => {
+    if (!scrollReady || !slug) return;
+    try {
+      sessionStorage.setItem(scrollKey, String(Math.round(window.scrollY)));
+    } catch (_) { /* penyimpanan tidak tersedia */ }
+  };
+
+  window.addEventListener('scroll', () => {
+    clearTimeout(scrollTimer);
+    scrollTimer = setTimeout(saveScroll, 150);
+  }, { passive: true });
+  window.addEventListener('pagehide', saveScroll);
+
+  function restoreScroll() {
+    let saved = null;
+    try { saved = sessionStorage.getItem(scrollKey); } catch (_) {}
+    const target = Number(saved);
+    if (location.hash || !saved || !Number.isFinite(target) || target <= 0) {
+      scrollReady = true;
+      return;
+    }
+    const apply = () => window.scrollTo({ top: target, behavior: 'instant' });
+    requestAnimationFrame(() => {
+      apply();
+      // Ulangi setelah font/gambar selesai dimuat karena tinggi halaman bisa berubah
+      if (document.fonts?.ready) document.fonts.ready.then(apply);
+      window.addEventListener('load', apply, { once: true });
+      setTimeout(() => { apply(); scrollReady = true; }, 400);
+    });
+  }
+
   async function loadArticle() {
     if (!slug || !/^[a-z0-9-]+$/i.test(slug)) {
       showNotFound();
@@ -291,6 +361,7 @@
     if (!articleResponse.ok) throw new Error('Artikel tidak dapat dimuat.');
 
     const { metadata, body } = parseFrontMatter(await articleResponse.text());
+    document.documentElement.dataset.topic = ['umum', 'agama'].includes(item.topic) ? item.topic : 'teknologi';
     const title = metadata.title || item.title;
     const date = metadata.date || item.date;
 
@@ -300,6 +371,7 @@
       <time datetime="${escapeHtml(date)}">${formatDate(date)}</time>
       ${markdownToHtml(body)}`;
     renderRelatedArticles(manifest.articles || []);
+    restoreScroll();
   }
 
   loadArticle().catch(error => {

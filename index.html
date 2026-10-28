@@ -6,7 +6,8 @@
   <meta name="description" content="Kumpulan panduan, catatan, cerita, dan alat bermanfaat dari Langsurya.">
   <meta name="theme-color" content="#0b1220">
   <title>Langsurya — Panduan, Catatan & Hal Bermanfaat</title>
-  <link rel="stylesheet" href="assets/css/site.css?v=20261027-12">
+  <link rel="stylesheet" href="assets/css/site.css?v=20261028-1">
+  <link rel="stylesheet" href="assets/css/theme-navy.css?v=20261028-2">
 </head>
 <body>
   <header class="site-header article-header">
@@ -49,10 +50,25 @@
       </aside>
     </section>
 
-    <section class="articles-section" aria-labelledby="daftar-artikel">
+    <section class="focus reveal" aria-labelledby="fokus-title">
+      <p class="section-kicker">FOKUS</p>
+      <h2 id="fokus-title" class="visually-hidden" hidden>Fokus</h2>
+      <div class="focus-grid">
+        <a class="focus-card" href="#daftar-artikel" data-filter="Panduan"><span class="focus-num">01</span><span class="focus-arrow" aria-hidden="true">↗</span><h3>Panduan</h3><p>Langkah praktis yang bisa langsung dicoba.</p></a>
+        <a class="focus-card" href="#daftar-artikel" data-filter="Catatan"><span class="focus-num">02</span><span class="focus-arrow" aria-hidden="true">↗</span><h3>Catatan</h3><p>Wawasan dan pengalaman yang layak disimpan.</p></a>
+        <a class="focus-card" href="tts/"><span class="focus-num">03</span><span class="focus-arrow" aria-hidden="true">↗</span><h3>Alat</h3><p>Pembaca teks dan alat kecil yang bermanfaat.</p></a>
+      </div>
+    </section>
+
+    <section class="articles-section reveal" aria-labelledby="daftar-artikel">
       <div class="section-heading">
         <div><p class="section-kicker">JELAJAHI</p><h2 id="daftar-artikel">Panduan & catatan terbaru</h2></div>
         <span id="article-count" aria-live="polite"></span>
+      </div>
+      <div id="topic-tabs" class="topic-tabs" role="tablist" aria-label="Topik" hidden></div>
+      <div class="article-toolbar">
+        <label class="search-box"><span hidden>Cari tulisan</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="article-search" type="search" placeholder="Cari tulisan…" autocomplete="off" aria-label="Cari tulisan"></label>
+        <div id="article-filters" class="filter-chips" role="group" aria-label="Filter kategori"></div>
       </div>
       <div id="article-list" class="article-list">
         <p class="loading">Memuat artikel...</p>
@@ -65,7 +81,7 @@
     <div class="footer-links"><a href="./">Beranda</a><a href="#daftar-artikel">Panduan & Catatan</a><a href="tts/">Alat</a></div>
   </footer>
   <button id="back-to-top" class="back-to-top" type="button" aria-label="Kembali ke atas" title="Kembali ke atas"><span aria-hidden="true">↑</span></button>
-  <script src="assets/js/site-ui.js?v=20261027-1" defer></script>
-  <script src="assets/js/articles.js?v=20261027-3" defer></script>
+  <script src="assets/js/site-ui.js?v=20261028-1" defer></script>
+  <script src="assets/js/articles.js?v=20261028-2" defer></script>
 </body>
 </html>

@@ -38,4 +38,34 @@
   window.addEventListener('scroll', updateBackToTop, { passive: true });
   updateBackToTop();
   backToTop?.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+
+  // Header shadow + reading progress
+  const header = document.querySelector('.site-header');
+  const progress = document.getElementById('read-progress');
+  const updateScrollUi = () => {
+    header?.classList.toggle('is-scrolled', window.scrollY > 8);
+    if (progress) {
+      const max = document.documentElement.scrollHeight - window.innerHeight;
+      progress.style.transform = `scaleX(${max > 0 ? Math.min(1, window.scrollY / max) : 0})`;
+    }
+  };
+  window.addEventListener('scroll', updateScrollUi, { passive: true });
+  window.addEventListener('resize', updateScrollUi);
+  updateScrollUi();
+
+  // Reveal on scroll
+  const revealItems = document.querySelectorAll('.reveal');
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (!('IntersectionObserver' in window) || reduceMotion) {
+    revealItems.forEach(item => item.classList.add('is-in'));
+  } else {
+    const observer = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        if (!entry.isIntersecting) return;
+        entry.target.classList.add('is-in');
+        observer.unobserve(entry.target);
+      });
+    }, { threshold: 0.12 });
+    revealItems.forEach(item => observer.observe(item));
+  }
 })();

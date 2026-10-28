@@ -1,32 +1,37 @@
 ---
-title: Selamat Datang di Langsurya
+title: Selamat Datang
 slug: selamat-datang
 date: 2026-10-27
-updated: 2026-10-27
+updated: 2026-10-28
 category: Catatan
 type: Tulisan
-tags: langsurya, pengantar
+tags: pengantar, panduan, catatan
 status: published
-description: Mengenal Langsurya, ruang untuk menemukan panduan praktis, catatan, pengalaman, dan alat yang bermanfaat.
+description: Pengantar singkat tentang isi situs ini: panduan praktis, catatan teknis, pengalaman, dan alat sederhana yang bisa langsung dipakai.
 ---
 
-# Selamat Datang di Langsurya
+# Selamat Datang
 
-Selamat datang di **Langsurya**, ruang berbagi untuk menemukan hal baru yang dapat dipelajari, dicoba, dan digunakan dalam keseharian.
+Situs ini berisi catatan dan panduan dari hal-hal yang pernah saya pelajari, coba, dan pakai sendiri. Tujuannya sederhana: menyimpan solusi yang berguna supaya tidak hilang, sekaligus membagikannya untuk siapa saja yang sedang mencari hal serupa.
 
-Situs ini memuat beragam panduan praktis, catatan, pengalaman, serta alat sederhana. Setiap tulisan disusun agar mudah dibaca dan dapat menjadi titik awal untuk memahami suatu topik dengan lebih baik.
+Sebagian besar tulisan lahir dari masalah nyata, misalnya konfigurasi server, perbaikan keamanan, atau trik kecil yang menghemat waktu. Setiap tulisan dibuat ringkas dan bisa langsung dipraktikkan.
 
-## Apa yang dapat ditemukan di sini?
+## Apa saja yang ada di sini?
 
-- **Panduan**, berisi langkah-langkah yang dapat langsung diterapkan.
-- **Catatan**, untuk menyimpan wawasan, temuan, dan pelajaran penting.
-- **Cerita dan pengalaman**, sebagai bahan refleksi serta pembelajaran bersama.
-- **Alat**, berupa utilitas sederhana yang dapat membantu pekerjaan sehari-hari.
+- **Panduan**: langkah-langkah yang bisa langsung dipraktikkan.
+- **Catatan**: wawasan, temuan, dan pelajaran yang layak disimpan.
+- **Cerita dan pengalaman**: bahan refleksi dan belajar bersama.
+- **Alat**: utilitas kecil untuk membantu pekerjaan sehari-hari, seperti pembaca teks.
 
-## Prinsip Langsurya
+## Prinsip
 
-Tulisan di Langsurya diupayakan tetap jelas, relevan, dan tidak dibuat lebih rumit dari yang diperlukan. Topik teknis akan dijelaskan secara bertahap, sementara catatan umum disampaikan dengan bahasa yang ringan dan mudah diikuti.
+- **Jelas**: langsung ke inti, tanpa basa-basi berlebihan.
+- **Relevan**: membahas hal yang memang berguna dan bisa diterapkan.
+- **Sederhana**: tidak dibuat lebih rumit dari yang diperlukan.
+- **Bertahap**: topik teknis dijelaskan langkah demi langkah, catatan umum disampaikan dengan bahasa yang ringan.
 
-Langsurya akan terus berkembang seiring bertambahnya panduan, catatan, dan alat baru. Silakan mulai menjelajah dari daftar artikel, lalu kembali kapan saja untuk menemukan pembaruan berikutnya.
+## Mulai dari mana?
 
-> Semoga setiap kunjungan membawa satu wawasan baru yang benar-benar bermanfaat.
+Buka daftar tulisan di beranda, lalu gunakan kolom pencarian atau filter kategori untuk menemukan topik yang kamu butuhkan. Konten baru akan terus ditambahkan, jadi silakan kembali kapan saja.
+
+> Semoga ada satu hal di sini yang membantu pekerjaanmu hari ini.

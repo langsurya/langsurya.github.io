@@ -28,14 +28,41 @@
     {
       "slug": "selamat-datang",
       "path": "2026/10/selamat-datang.md",
-      "title": "Selamat Datang di Langsurya",
-      "date": "2026-10-27",
-      "updated": "2026-10-27",
+      "title": "Selamat Datang",
+      "date": "2026-10-26",
+      "updated": "2026-10-26",
+      "topic": "umum",
       "category": "Catatan",
       "type": "Tulisan",
-      "tags": ["langsurya", "pengantar"],
+      "tags": ["pengantar", "panduan", "catatan"],
       "status": "published",
-      "description": "Mengenal Langsurya, ruang untuk menemukan panduan praktis, catatan, pengalaman, dan alat yang bermanfaat."
+      "description": "Pengantar singkat tentang isi situs ini: panduan praktis, catatan teknis, pengalaman, dan alat sederhana yang bisa langsung dipakai."
+    },
+    {
+      "slug": "panduan-konten",
+      "path": "PANDUAN-KONTEN.md",
+      "title": "Panduan Konten",
+      "date": "2026-10-25",
+      "updated": "2026-10-25",
+      "topic": "umum",
+      "category": "Catatan",
+      "type": "Tulisan",
+      "tags": ["panduan", "konten", "topik"],
+      "status": "published",
+      "description": "Cara menambah tulisan baru: memilih topik (teknologi, umum, agama), mengisi index.json, dan menulis teks Arab."
+    },
+    {
+      "slug": "panduan-markdown",
+      "path": "2026/10/panduan-markdown.md",
+      "title": "Panduan Lengkap Markdown: Sejarah, Pengertian, dan Cara Penggunaan",
+      "date": "2026-10-28",
+      "updated": "2026-10-28",
+      "topic": "teknologi",
+      "category": "Panduan",
+      "type": "Artikel",
+      "tags": ["markdown", "menulis", "dokumentasi", "github"],
+      "status": "published",
+      "description": "Mengenal Markdown dari sejarah dan pengertiannya, lalu belajar semua sintaks dasar hingga lanjutan beserta contoh dan tips penulisan."
     }
   ]
 }
