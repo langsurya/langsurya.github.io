@@ -159,6 +159,38 @@ h1 em{color:var(--blue);font-style:italic}
 .article-body .tk-tag{color:#569cd6}
 .article-body .tk-flag{color:#4fc1ff}
 
+/* ===== Daftar artikel: disematkan, kartu, nomor halaman ===== */
+.list-label{margin:6px 0 10px;color:#64748b;font:800 .72rem/1 inherit;letter-spacing:.12em;text-transform:uppercase}
+.pinned-section{margin-bottom:26px}
+.pinned-section[hidden]{display:none}
+.pinned-list{display:grid;gap:14px}
+
+.article-card{position:relative;border:1px solid #e2e8f0;border-radius:16px;background:#fff;transition:transform .2s ease,box-shadow .2s ease,border-color .2s ease}
+.article-card:hover{transform:translateY(-3px);border-color:#c7d2fe;box-shadow:0 14px 34px -18px rgba(15,29,61,.35)}
+.article-card h3 a{color:#0f1d3d;text-decoration:none}
+.article-card h3 a:hover{color:#2f4fd6}
+.article-card .read-more{font-weight:700;color:#2f4fd6;text-decoration:none}
+.article-card .read-more span{display:inline-block;transition:transform .2s ease}
+.article-card:hover .read-more span{transform:translateX(4px)}
+
+.article-card.is-pinned{border-color:#f5c26b;background:linear-gradient(135deg,#fffaf0 0%,#fff 60%)}
+.article-card.is-pinned::before{content:'';position:absolute;left:0;top:14px;bottom:14px;width:4px;border-radius:0 4px 4px 0;background:#f0a92e}
+.pin-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:999px;background:#fdecc8;color:#8a5a00;font-size:.72rem;font-weight:800}
+
+.pagination{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:6px;margin-top:28px}
+.pagination[hidden]{display:none}
+.page-btn{min-width:40px;height:40px;padding:0 12px;border:1px solid #e2e8f0;border-radius:10px;background:#fff;color:#0f1d3d;font:700 .9rem/1 inherit;cursor:pointer;transition:background .15s,border-color .15s,color .15s}
+.page-btn:hover:not(:disabled){border-color:#2f4fd6;color:#2f4fd6}
+.page-btn[aria-current="page"]{background:#0f1d3d;border-color:#0f1d3d;color:#fff}
+.page-btn:disabled{opacity:.4;cursor:not-allowed}
+.page-gap{padding:0 4px;color:#94a3b8}
+.page-info{width:100%;margin-top:6px;text-align:center;color:#64748b;font-size:.82rem}
+
+.search-box{transition:box-shadow .2s ease,border-color .2s ease}
+.search-box:focus-within{border-color:#2f4fd6;box-shadow:0 0 0 4px rgba(47,79,214,.12)}
+
+@media (prefers-reduced-motion:reduce){.article-card,.article-card .read-more span{transition:none}.article-card:hover{transform:none}}
+
 /* Responsive */
 @media(max-width:850px){.focus{margin-top:-20px;margin-bottom:80px}.focus-grid{grid-template-columns:1fr}.article-list{grid-template-columns:1fr}.article-toolbar{flex-direction:column;align-items:stretch}.search-box{flex:auto}}
 @media(max-width:640px){.article-card,.article-card:hover{padding:20px}.focus-card{padding:22px}}

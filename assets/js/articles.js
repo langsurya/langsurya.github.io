@@ -32,22 +32,50 @@
   const topicTabs = document.getElementById('topic-tabs');
   let activeTopic = 'semua';
 
+  // Pengaturan daftar
+  const PAGE_SIZE = 6;
+  let currentPage = 1;
+  const lastUpdate = item => item.updated || item.date;
+  const isPinned = item => item.pinned === true;
+
+  // Kontainer artikel disematkan (sebelum daftar) dan nomor halaman (sesudah daftar)
+  const pinnedBox = document.createElement('div');
+  pinnedBox.className = 'pinned-section';
+  pinnedBox.hidden = true;
+  list.before(pinnedBox);
+  const pager = document.createElement('nav');
+  pager.className = 'pagination';
+  pager.setAttribute('aria-label', 'Halaman artikel');
+  list.after(pager);
+
+  const pageFromUrl = () => Math.max(1, parseInt(new URLSearchParams(location.search).get('page'), 10) || 1);
+  currentPage = pageFromUrl();
+
+  function setPageInUrl(page) {
+    const url = new URL(location.href);
+    if (page > 1) url.searchParams.set('page', page); else url.searchParams.delete('page');
+    history.replaceState(null, '', url);
+  }
+
   function renderArticle(item) {
     const url = articleUrl(item.slug);
     const title = escapeHtml(item.title);
     const category = escapeHtml(item.category || 'Catatan');
     const type = escapeHtml(item.type || 'Tulisan');
     const description = escapeHtml(item.description || '');
-    const date = escapeHtml(item.date);
+    const date = escapeHtml(lastUpdate(item));
     const topic = topicOf(item);
+    const updated = item.updated && item.updated !== item.date;
+    const pinned = isPinned(item);
 
     return `
-      <article class="article-card" data-topic="${topic}">
+      <article class="article-card${pinned ? ' is-pinned' : ''}" data-topic="${topic}">
         <div class="article-meta">
+          ${pinned ? '<span class="pin-badge">📌 Disematkan</span>' : ''}
           <span class="topic-badge">${TOPICS[topic]}</span>
           <span class="category">${category}</span>
           <span class="content-type">${type}</span>
-          <time datetime="${date}">${formatDate(item.date)}</time>
+          <time datetime="${date}">${updated ? 'Diperbarui ' : ''}${formatDate(lastUpdate(item))}</time>
         </div>
         <div class="article-copy">
           <h3><a href="${url}">${title}</a></h3>
@@ -67,7 +95,7 @@
 
     const articles = manifest.articles
       .filter(item => item.status === 'published')
-      .sort((a, b) => b.date.localeCompare(a.date) || a.title.localeCompare(b.title, 'id'));
+      .sort((a, b) => lastUpdate(b).localeCompare(lastUpdate(a)) || a.title.localeCompare(b.title, 'id'));
 
     allArticles = articles;
     renderFilters();
@@ -103,6 +131,7 @@
     filters?.querySelectorAll('.filter-chip').forEach(chip => {
       chip.setAttribute('aria-pressed', String(chip.dataset.category === activeCategory));
     });
+    currentPage = 1;
     applyFilters();
   }
 
@@ -118,24 +147,78 @@
       ? `${allArticles.length} tulisan`
       : `${visible.length} dari ${allArticles.length} tulisan`;
 
+    // Artikel disematkan tampil terpisah hanya saat tidak sedang mencari/memfilter kategori
+    const browsing = !query && activeCategory === 'Semua';
+    const pinnedItems = browsing ? visible.filter(isPinned) : [];
+    const rest = browsing ? visible.filter(item => !isPinned(item)) : visible;
+
+    pinnedBox.hidden = !pinnedItems.length;
+    pinnedBox.innerHTML = pinnedItems.length
+      ? `<p class="list-label">Disematkan</p><div class="article-list pinned-list">${pinnedItems.map(renderArticle).join('')}</div>`
+      : '';
+
+    const totalPages = Math.max(1, Math.ceil(rest.length / PAGE_SIZE));
+    currentPage = Math.min(Math.max(1, currentPage), totalPages);
+    const pageItems = rest.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
     if (!allArticles.length) {
       list.innerHTML = '<p class="empty-state">Belum ada tulisan yang dipublikasikan.</p>';
     } else if (!visible.length) {
       list.innerHTML = '<p class="empty-state">Tidak ada tulisan yang cocok. Coba kata kunci atau kategori lain.</p>';
+    } else if (!rest.length) {
+      list.innerHTML = '';
     } else {
-      list.innerHTML = visible.map(renderArticle).join('');
+      list.innerHTML = (pinnedItems.length ? '<p class="list-label">Terbaru</p>' : '') + pageItems.map(renderArticle).join('');
     }
+
+    renderPager(totalPages, rest.length);
+    setPageInUrl(currentPage);
   }
+
+  function renderPager(totalPages, total) {
+    if (totalPages <= 1) {
+      pager.hidden = true;
+      pager.innerHTML = '';
+      return;
+    }
+    pager.hidden = false;
+    // Halaman pertama, terakhir, dan sekitar halaman aktif
+    const pages = [];
+    for (let p = 1; p <= totalPages; p += 1) {
+      if (p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1) pages.push(p);
+      else if (pages[pages.length - 1] !== '…') pages.push('…');
+    }
+    const from = (currentPage - 1) * PAGE_SIZE + 1;
+    const to = Math.min(currentPage * PAGE_SIZE, total);
+    pager.innerHTML = `
+      <button type="button" class="page-btn" data-page="${currentPage - 1}" ${currentPage === 1 ? 'disabled' : ''} aria-label="Halaman sebelumnya">‹</button>
+      ${pages.map(p => p === '…'
+        ? '<span class="page-gap">…</span>'
+        : `<button type="button" class="page-btn" data-page="${p}" ${p === currentPage ? 'aria-current="page"' : ''}>${p}</button>`).join('')}
+      <button type="button" class="page-btn" data-page="${currentPage + 1}" ${currentPage === totalPages ? 'disabled' : ''} aria-label="Halaman berikutnya">›</button>
+      <span class="page-info">${from}–${to} dari ${total}</span>`;
+  }
+
+  pager.addEventListener('click', event => {
+    const button = event.target.closest('.page-btn');
+    if (!button || button.disabled) return;
+    currentPage = Number(button.dataset.page);
+    applyFilters();
+    document.getElementById('daftar-artikel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+
+  const resetAndApply = () => { currentPage = 1; applyFilters(); };
 
   topicTabs?.addEventListener('click', event => {
     const tab = event.target.closest('.topic-tab');
     if (!tab) return;
     activeTopic = tab.dataset.topic;
     activeCategory = 'Semua';
+    currentPage = 1;
     renderFilters();
     applyFilters();
   });
-  searchInput?.addEventListener('input', applyFilters);
+  searchInput?.addEventListener('input', resetAndApply);
   filters?.addEventListener('click', event => {
     const chip = event.target.closest('.filter-chip');
     if (chip) setCategory(chip.dataset.category);
