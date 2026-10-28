@@ -212,6 +212,24 @@ h1 em{color:var(--blue);font-style:italic}
 @media (prefers-reduced-motion:reduce){.article-card,.article-card .read-more span{transition:none}.article-card:hover{transform:none}}
 
 /* Responsive */
-@media(max-width:850px){.focus{margin-top:-20px;margin-bottom:80px}.focus-grid{grid-template-columns:1fr}.article-list{grid-template-columns:1fr}.article-toolbar{flex-direction:column;align-items:stretch}.search-box{flex:auto}}
-@media(max-width:640px){.articles-section .section-heading{align-items:flex-start;gap:10px}.articles-section .section-heading h2{font-size:1.2rem}.section-summary{font-size:.8rem}.articles-section .article-card,.articles-section .article-card:hover{padding:15px}.focus-card{padding:22px}}
+@media(max-width:850px){.focus{margin-top:-20px;margin-bottom:80px}.focus-grid{grid-template-columns:1fr}.article-list{grid-template-columns:1fr}.article-toolbar{flex-direction:column;align-items:stretch;justify-content:flex-start}.search-box{flex:none;width:100%}.filter-chips{width:100%}}
+@media(max-width:640px){
+	.site-main{padding-bottom:72px}
+	.articles-section .section-heading{align-items:flex-start;gap:10px}
+	.articles-section .section-heading h2{font-size:1.2rem}
+	.section-summary{font-size:.8rem}
+	.articles-section .topic-tabs{margin-top:10px}
+	.articles-section .topic-tab{padding:9px 12px}
+	.articles-section .article-toolbar{display:block;margin-top:14px}
+	.articles-section .search-box{display:block;width:100%;height:auto}
+	.articles-section .search-box input{display:block;width:100%;min-height:44px}
+	.articles-section .filter-chips{margin-top:12px;padding-bottom:3px;overscroll-behavior-inline:contain}
+	.articles-section .filter-chip{min-height:38px;padding-inline:15px}
+	.pinned-section{margin-top:18px}
+	.articles-section .article-list{margin-top:10px}
+	.articles-section .article-card,.articles-section .article-card:hover{padding:15px}
+	.articles-section .article-meta{align-items:flex-start}
+	.articles-section .article-card h3{font-size:1.12rem}
+	.focus-card{padding:22px}
+}
 @media(prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none}.read-progress{transition:none}}
