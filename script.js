@@ -1,5 +1,5 @@
 (() => {
-  const APP_VERSION = 'web-v2026.11.10-1408';
+  const APP_VERSION = 'web-v2026.11.10-1418';
   const $ = id => document.getElementById(id);
   const el = {
     teks:$('teks'), hitung:$('hitung'), bahasa:$('bahasa'), suara:$('suara'),
@@ -9,7 +9,8 @@
     mundur:$('mundur'), maju:$('maju'), pTime:$('p-time'),
     status:$('status'), notice:$('notice'), reader:$('reader'), riwayat:$('riwayat'),
     muat:$('muat'), berkas:$('berkas'), bersih:$('bersih'), tema:$('tema'),
-    panel:$('panel'), atur:$('atur'), aturInfo:$('atur-info'), tutup:$('tutup')
+    panel:$('panel'), atur:$('atur'), aturInfo:$('atur-info'), tutup:$('tutup'),
+    modeBaca:$('mode-baca'), translateInfo:$('translate-info')
   };
 
   /* ---------- panel pengaturan (buka/tutup) ---------- */
@@ -350,6 +351,47 @@
   el.teks.addEventListener('input', updateCount);
   el.teks.value = store.get('tts:draf', '');
   updateCount();
+
+  /* ---------- terjemahan ---------- */
+  el.modeBaca.value = store.get('tts:mode_baca', 'original');
+  function updateTranslateMode(){
+    el.translateInfo.hidden = el.modeBaca.value !== 'id';
+    store.set('tts:mode_baca', el.modeBaca.value);
+  }
+  el.modeBaca.addEventListener('change', updateTranslateMode);
+  updateTranslateMode();
+
+  function translationParts(text, max = 450){
+    const parts = [];
+    let rest = text;
+    while (rest.length > max) {
+      let cut = Math.max(rest.lastIndexOf('\n', max), rest.lastIndexOf('. ', max));
+      if (cut < max * 0.55) cut = rest.lastIndexOf(' ', max);
+      if (cut < 1) cut = max;
+      else if (rest.slice(cut, cut + 2) === '. ') cut++;
+      parts.push(rest.slice(0, cut));
+      rest = rest.slice(cut);
+    }
+    if (rest) parts.push(rest);
+    return parts;
+  }
+
+  async function translateToIndonesian(text){
+    const sourceLang = (el.bahasa.value || 'en').split('-')[0].toLowerCase();
+    if (sourceLang === 'id') return text;
+    const translated = [];
+    for (const part of translationParts(text)) {
+      const params = new URLSearchParams({ q: part, langpair: sourceLang + '|id' });
+      const response = await fetch('https://api.mymemory.translated.net/get?' + params);
+      if (!response.ok) throw new Error('HTTP ' + response.status);
+      const data = await response.json();
+      if (data.responseStatus !== 200 || !data.responseData?.translatedText) {
+        throw new Error(data.responseDetails || 'Terjemahan tidak tersedia');
+      }
+      translated.push(data.responseData.translatedText);
+    }
+    return translated.join('');
+  }
 
   /* ---------- pecah teks menjadi kalimat ---------- */
   // Mengembalikan potongan beserta posisi aslinya agar tampilan pembaca identik dengan teks yang ditempel
@@ -724,14 +766,33 @@
     setState('idle');
   }
 
-  function start(){
-    source = el.teks.value.replace(/\r/g, '');
-    if (!source.trim()){ el.status.textContent = 'Isi teks dulu sebelum memutar.'; el.teks.focus(); return; }
+  async function start(){
+    const original = el.teks.value.replace(/\r/g, '');
+    if (!original.trim()){ el.status.textContent = 'Isi teks dulu sebelum memutar.'; el.teks.focus(); return; }
+    source = original;
+    if (el.modeBaca.value === 'id') {
+      el.status.textContent = 'Menerjemahkan teks ke bahasa Indonesia…';
+      el.putar.disabled = true;
+      try {
+        source = await translateToIndonesian(original);
+        const indonesian = [...el.bahasa.options].find(option => option.value.toLowerCase().startsWith('id'));
+        if (indonesian) {
+          el.bahasa.value = indonesian.value;
+          el.bahasa.dispatchEvent(new Event('change'));
+        }
+        el.status.textContent = 'Terjemahan selesai. Mulai membacakan…';
+      } catch (error) {
+        el.status.textContent = 'Terjemahan gagal: ' + error.message + '. Silakan pilih teks original atau coba lagi.';
+        return;
+      } finally {
+        el.putar.disabled = false;
+      }
+    }
     token++;
     if (!speechCancelled && (synth.speaking || synth.pending)) cancelSpeech();
     queue = chunk(source); idx = 0; stalledRetries = 0;
     renderReader(); setState('playing');
-    addHistory(source.trim());
+    addHistory(original.trim());
     next(token);
   }
 
