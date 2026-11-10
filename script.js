@@ -1,5 +1,5 @@
 (() => {
-  const APP_VERSION = 'web-v2026.11.10-1458';
+  const APP_VERSION = 'web-v2026.11.10-1508';
   const $ = id => document.getElementById(id);
   const el = {
     teks:$('teks'), hitung:$('hitung'), bahasa:$('bahasa'), suara:$('suara'),
@@ -359,14 +359,12 @@
 
   /* ---------- terjemahan ---------- */
   const readMode = () => el.modeBaca.querySelector('input[name="mode-baca"]:checked')?.value || 'original';
-  const savedReadMode = store.get('tts:mode_baca', 'original');
-  const savedModeInput = el.modeBaca.querySelector(`input[value="${savedReadMode === 'id' ? 'id' : 'original'}"]`);
-  if (savedModeInput) savedModeInput.checked = true;
+  const defaultModeInput = el.modeBaca.querySelector('input[value="original"]');
+  if (defaultModeInput) defaultModeInput.checked = true;
   function updateTranslateMode(){
     const mode = readMode();
     el.translateInfo.hidden = mode !== 'id';
     el.modeBaca.dataset.mode = mode;
-    store.set('tts:mode_baca', mode);
     // Mode menentukan prioritas. Bahasa pada select adalah bahasa sumber untuk
     // teks original maupun penerjemahan, bukan bahasa keluaran terjemahan.
     // Ini juga memulihkan pilihan Indonesia yang tersimpan oleh versi lama.
@@ -828,7 +826,8 @@
           || voices.find(v => normalizeLocale(v.lang).startsWith('id'))
           || null;
         playbackLang = playbackVoice?.lang || 'id-ID';
-        el.status.textContent = 'Terjemahan selesai. Mulai membacakan…';
+        const outputVoice = playbackVoice?.name || 'suara bawaan browser';
+        el.status.textContent = 'Terjemahan selesai. Hasil: Indonesia · Suara: ' + outputVoice + '.';
       } catch (error) {
         el.status.textContent = 'Terjemahan gagal: ' + error.message + '. Silakan pilih teks original atau coba lagi.';
         return;
