@@ -1,5 +1,5 @@
 (() => {
-  const APP_VERSION = 'web-v2026.11.10-1443';
+  const APP_VERSION = 'web-v2026.11.10-1458';
   const $ = id => document.getElementById(id);
   const el = {
     teks:$('teks'), hitung:$('hitung'), bahasa:$('bahasa'), suara:$('suara'),
@@ -343,13 +343,18 @@
     const t = el.teks.value;
     const w = t.trim() ? t.trim().split(/\s+/).length : 0;
     el.hitung.textContent = t.length.toLocaleString('id-ID') + ' karakter · ' + w.toLocaleString('id-ID') + ' kata';
-    store.set('tts:draf', t);
     // Deteksi otomatis hanya dipakai sebelum pengguna pernah memilih bahasa.
     // Setelah pilihan tersimpan, refresh halaman harus mempertahankannya.
     if (!store.get('tts:bahasa', null)) applyDetectedLanguage();
   }
   el.teks.addEventListener('input', updateCount);
-  el.teks.value = store.get('tts:draf', '');
+  el.teks.value = '';
+  window.addEventListener('pageshow', event => {
+    if (event.persisted) {
+      el.teks.value = '';
+      updateCount();
+    }
+  });
   updateCount();
 
   /* ---------- terjemahan ---------- */
@@ -367,7 +372,13 @@
     // Ini juga memulihkan pilihan Indonesia yang tersimpan oleh versi lama.
     applyDetectedLanguage();
   }
-  el.modeBaca.addEventListener('change', updateTranslateMode);
+  el.modeBaca.addEventListener('change', () => {
+    updateTranslateMode();
+    if (state !== 'idle') {
+      finish('Mode bacaan diubah. Menyiapkan ulang teks…');
+      start();
+    }
+  });
   updateTranslateMode();
 
   function translationParts(text, max = 450){
@@ -392,12 +403,23 @@
     for (const part of translationParts(text)) {
       const params = new URLSearchParams({ q: part, langpair: sourceLang + '|id' });
       const response = await fetch('https://api.mymemory.translated.net/get?' + params);
-      if (!response.ok) throw new Error('HTTP ' + response.status);
-      const data = await response.json();
-      if (data.responseStatus !== 200 || !data.responseData?.translatedText) {
-        throw new Error(data.responseDetails || 'Terjemahan tidak tersedia');
+      if (response.ok) {
+        const data = await response.json();
+        if (data.responseStatus === 200 && data.responseData?.translatedText) {
+          translated.push(data.responseData.translatedText);
+          continue;
+        }
       }
-      translated.push(data.responseData.translatedText);
+
+      const fallbackParams = new URLSearchParams({
+        client:'gtx', sl:sourceLang, tl:'id', dt:'t', q:part
+      });
+      const fallback = await fetch('https://translate.googleapis.com/translate_a/single?' + fallbackParams);
+      if (!fallback.ok) throw new Error('layanan terjemahan sedang membatasi permintaan');
+      const fallbackData = await fallback.json();
+      const fallbackText = fallbackData?.[0]?.map(segment => segment?.[0] || '').join('');
+      if (!fallbackText) throw new Error('terjemahan tidak tersedia');
+      translated.push(fallbackText);
     }
     return translated.join('');
   }
