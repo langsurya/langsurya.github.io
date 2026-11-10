@@ -753,7 +753,8 @@
     history.forEach((h, i) => {
       const li = document.createElement('li');
       const b = document.createElement('button');
-      b.className = 'txt'; b.type = 'button'; b.textContent = h.replace(/\s+/g, ' '); b.title = h;
+      const firstLine = h.split(/\r?\n/).find(line => line.trim()) || h;
+      b.className = 'txt'; b.type = 'button'; b.textContent = firstLine.trim(); b.title = h;
       b.onclick = () => { el.teks.value = h; updateCount(); el.teks.focus(); };
       const d = document.createElement('button');
       d.className = 'small'; d.type = 'button'; d.textContent = 'Hapus';
