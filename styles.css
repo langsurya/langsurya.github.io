@@ -38,6 +38,22 @@ textarea:focus,select:focus,button:focus-visible,input:focus-visible{outline:3px
 .grid{display:grid;grid-template-columns:minmax(130px,.8fr) minmax(210px,1.35fr) minmax(190px,1.1fr);gap:10px;margin-top:12px}
 .grid label{font-size:.76rem;color:var(--muted);margin:0 0 3px}
 .grid select{height:38px;padding:6px 32px 6px 10px;font-size:.88rem}
+.field-label{display:block;font-size:.76rem;font-weight:600;color:var(--muted);margin:0 0 3px}
+.mode-switch{
+  display:grid;grid-template-columns:1fr 1fr;height:38px;padding:3px;gap:3px;
+  border:1px solid var(--line);border-radius:10px;background:color-mix(in srgb,var(--bg) 72%,var(--panel));
+}
+.mode-option{display:block;margin:0;cursor:pointer;min-width:0}
+.mode-option input{position:absolute;opacity:0;pointer-events:none}
+.mode-option span{
+  height:30px;padding:0 10px;border-radius:7px;display:flex;align-items:center;justify-content:center;
+  color:var(--muted);font-size:.8rem;font-weight:650;white-space:nowrap;transition:background .18s,color .18s,box-shadow .18s;
+}
+.mode-option input:checked+span{
+  background:var(--panel);color:var(--accent);box-shadow:0 1px 4px color-mix(in srgb,var(--ink) 18%,transparent);
+}
+.mode-option input:focus-visible+span{outline:2px solid var(--accent);outline-offset:1px}
+.mode-option:hover span{color:var(--ink)}
 .translate-info{
   margin-top:8px;padding:7px 10px;border-left:2px solid var(--accent);
   background:color-mix(in srgb,var(--accent) 8%,var(--panel));color:var(--muted);font-size:.78rem;
@@ -208,6 +224,7 @@ input[type=range]::-moz-range-thumb{
   .grid{grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
   .grid>div:nth-child(2){grid-column:1/-1;grid-row:2}
   .grid>div:nth-child(3){grid-column:2;grid-row:1}
+  .mode-option span{padding:0 6px;font-size:.76rem}
   .controls{grid-template-columns:minmax(0,1fr);gap:12px}
   .controls{gap:8px}
   .ctl{padding:8px 10px;gap:6px 8px}

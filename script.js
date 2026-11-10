@@ -1,5 +1,5 @@
 (() => {
-  const APP_VERSION = 'web-v2026.11.10-1430';
+  const APP_VERSION = 'web-v2026.11.10-1443';
   const $ = id => document.getElementById(id);
   const el = {
     teks:$('teks'), hitung:$('hitung'), bahasa:$('bahasa'), suara:$('suara'),
@@ -353,10 +353,19 @@
   updateCount();
 
   /* ---------- terjemahan ---------- */
-  el.modeBaca.value = store.get('tts:mode_baca', 'original');
+  const readMode = () => el.modeBaca.querySelector('input[name="mode-baca"]:checked')?.value || 'original';
+  const savedReadMode = store.get('tts:mode_baca', 'original');
+  const savedModeInput = el.modeBaca.querySelector(`input[value="${savedReadMode === 'id' ? 'id' : 'original'}"]`);
+  if (savedModeInput) savedModeInput.checked = true;
   function updateTranslateMode(){
-    el.translateInfo.hidden = el.modeBaca.value !== 'id';
-    store.set('tts:mode_baca', el.modeBaca.value);
+    const mode = readMode();
+    el.translateInfo.hidden = mode !== 'id';
+    el.modeBaca.dataset.mode = mode;
+    store.set('tts:mode_baca', mode);
+    // Mode menentukan prioritas. Bahasa pada select adalah bahasa sumber untuk
+    // teks original maupun penerjemahan, bukan bahasa keluaran terjemahan.
+    // Ini juga memulihkan pilihan Indonesia yang tersimpan oleh versi lama.
+    applyDetectedLanguage();
   }
   el.modeBaca.addEventListener('change', updateTranslateMode);
   updateTranslateMode();
@@ -435,6 +444,9 @@
 
   /* ---------- pemutaran ---------- */
   let queue = [], idx = 0, state = 'idle', spans = [], token = 0, source = '', speechCancelled = false, chunkTimer = null, stalledRetries = 0;
+  // undefined = belum ada sesi, sehingga Uji Suara mengikuti select.
+  // null = sesi sengaja tidak menemukan voice khusus dan hanya memakai lang.
+  let playbackVoice, playbackLang = null;
 
   function cancelSpeech(){
     clearTimeout(chunkTimer);
@@ -606,8 +618,10 @@
     // di desktop dapat memproses bantalan ini sebagai potongan ucapan pendek.
     const spokenText = isMobile ? '\u00A0\u00A0' + clean : clean;
     const u = new SpeechSynthesisUtterance(spokenText);
-    const v = voices.find(x => x.name === el.suara.value);
-    if (v){ u.voice = v; u.lang = v.lang; } else u.lang = el.bahasa.value || 'id-ID';
+    const v = playbackVoice === undefined
+      ? voices.find(x => x.name === el.suara.value)
+      : playbackVoice;
+    if (v){ u.voice = v; u.lang = v.lang; } else u.lang = playbackLang || el.bahasa.value || 'en-US';
     u.rate = +el.kecepatan.value; u.pitch = +el.nada.value; u.volume = +el.volume.value;
     // Di sebagian browser mobile, onend kadang tidak terpanggil sehingga
     // antrean macet (mis. tetap 1/378). Watchdog memanggil onend sekali saja
@@ -776,17 +790,22 @@
   async function start(){
     const original = el.teks.value.replace(/\r/g, '');
     if (!original.trim()){ el.status.textContent = 'Isi teks dulu sebelum memutar.'; el.teks.focus(); return; }
+    // Mode baca menjadi prioritas utama. Deteksi ulang bahasa sumber sebelum
+    // mengambil suara agar pilihan Indonesia yang tertinggal dari mode
+    // terjemahan versi lama tidak dipakai untuk teks original berbahasa lain.
+    applyDetectedLanguage();
     source = original;
-    if (el.modeBaca.value === 'id') {
+    playbackVoice = voices.find(x => x.name === el.suara.value) || null;
+    playbackLang = el.bahasa.value || playbackVoice?.lang || 'en-US';
+    if (readMode() === 'id') {
       el.status.textContent = 'Menerjemahkan teks ke bahasa Indonesia…';
       el.putar.disabled = true;
       try {
         source = await translateToIndonesian(original);
-        const indonesian = [...el.bahasa.options].find(option => option.value.toLowerCase().startsWith('id'));
-        if (indonesian) {
-          el.bahasa.value = indonesian.value;
-          el.bahasa.dispatchEvent(new Event('change'));
-        }
+        playbackVoice = voices.find(v => normalizeLocale(v.lang).startsWith('id') && /google/i.test(v.name))
+          || voices.find(v => normalizeLocale(v.lang).startsWith('id'))
+          || null;
+        playbackLang = playbackVoice?.lang || 'id-ID';
         el.status.textContent = 'Terjemahan selesai. Mulai membacakan…';
       } catch (error) {
         el.status.textContent = 'Terjemahan gagal: ' + error.message + '. Silakan pilih teks original atau coba lagi.';

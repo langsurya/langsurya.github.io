@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="description" content="Alat pembaca teks Langsurya untuk membacakan teks langsung dari browser.">
 <title>Pembaca Teks | Langsurya</title>
-<link rel="stylesheet" href="../styles.css?v=20261110-1430">
+<link rel="stylesheet" href="../styles.css?v=20261110-1443">
 </head>
 <body>
 <main>
@@ -41,12 +41,18 @@
         <label for="suara">Suara</label>
         <select id="suara"></select>
       </div>
-      <div>
-        <label for="mode-baca">Teks yang dibacakan</label>
-        <select id="mode-baca">
-          <option value="original">Teks original</option>
-          <option value="id">Terjemahan bahasa Indonesia</option>
-        </select>
+      <div class="read-mode-field">
+        <span class="field-label" id="mode-baca-label">Teks yang dibacakan</span>
+        <div id="mode-baca" class="mode-switch" role="radiogroup" aria-labelledby="mode-baca-label">
+          <label class="mode-option">
+            <input id="mode-original" type="radio" name="mode-baca" value="original" checked>
+            <span>Original</span>
+          </label>
+          <label class="mode-option">
+            <input id="mode-id" type="radio" name="mode-baca" value="id">
+            <span>Terjemahkan</span>
+          </label>
+        </div>
       </div>
     </div>
 
@@ -156,6 +162,6 @@
   </section>
 </main>
 
-<script src="../script.js?v=20261110-1430"></script>
+<script src="../script.js?v=20261110-1443"></script>
 </body>
 </html>
