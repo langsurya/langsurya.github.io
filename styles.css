@@ -324,3 +324,17 @@ input[type=range]::-moz-range-thumb{
   .icon-btn.danger:hover:not(:disabled){background:rgba(224,122,107,.14)}
 }
 .player[data-state="playing"] .play-btn::after{top:-4px;right:-4px;bottom:-4px;left:-4px}
+
+/* Cegah tombol pengaturan melewati sisi kanan pada layar ponsel sempit. */
+@media (max-width:600px){
+  #atur{
+    grid-column:1/-1;
+    grid-row:3;
+    width:100%;
+    min-width:0;
+    min-height:40px;
+    padding:7px 10px;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+}
