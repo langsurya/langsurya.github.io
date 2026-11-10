@@ -383,7 +383,7 @@
   }
 
   /* ---------- pemutaran ---------- */
-  let queue = [], idx = 0, state = 'idle', spans = [], token = 0, source = '', speechCancelled = false, chunkTimer = null;
+  let queue = [], idx = 0, state = 'idle', spans = [], token = 0, source = '', speechCancelled = false, chunkTimer = null, stalledRetries = 0;
 
   function cancelSpeech(){
     clearTimeout(chunkTimer);
@@ -571,19 +571,25 @@
     // sebelum setiap kalimat dapat mengubah status sesi media Chrome dan
     // mengganggu suara Google online yang masih menutup kalimat sebelumnya.
     synth.speak(u);
-    // Watchdog dibutuhkan pada Android karena onend kadang hilang. Pada suara
-    // Google online desktop, speaking dapat berubah false sesaat saat buffering;
-    // watchdog lama lalu memajukan antrean sebelum kalimat selesai dan hanya
-    // menyisakan fragmen seperti "ak", "ka", atau "di".
-    if (isMobile) {
-      let idle = 0;
-      watch = setInterval(() => {
-        if (ended || speechCancelled) { clearInterval(watch); return; }
-        if (!synth.speaking && !synth.pending) {
-          if (++idle >= (started ? 2 : 6)) done();
-        } else idle = 0;
-      }, 500);
-    }
+    // Chromium kadang kehilangan sesi suara Google online ketika tab lain
+    // memuat ulang atau berpindah halaman tanpa mengirim onend/onerror. Pantau
+    // mesin suara juga di desktop, tetapi beri toleransi panjang agar buffering
+    // singkat tidak salah dianggap macet.
+    let idle = 0;
+    watch = setInterval(() => {
+      if (ended || speechCancelled) { clearInterval(watch); return; }
+      if (!synth.speaking && !synth.pending) {
+        const limit = isMobile ? (started ? 2 : 6) : (started ? 12 : 24);
+        if (++idle >= limit) {
+          if (isMobile) done();
+          else {
+            ended = true;
+            clearInterval(watch);
+            onerror && onerror({ error:'stalled' });
+          }
+        }
+      } else idle = 0;
+    }, 500);
     return u;
   }
 
@@ -646,6 +652,7 @@
     if (myToken !== token) return;
     say(queue[idx].text, () => {
       if (myToken !== token) return;
+      stalledRetries = 0;
       // Beri mesin suara online waktu singkat untuk menutup kanal kalimat
       // sebelumnya. Pemanggilan speak() langsung dari onend kadang membuat
       // awal kalimat berikutnya patah atau terdengar terbata-bata di desktop.
@@ -662,7 +669,16 @@
       if (delay) chunkTimer = setTimeout(advance, delay);
       else advance();
     }, e => {
-      if (myToken === token) finish('Terjadi kesalahan suara: ' + e.error);
+      if (myToken !== token) return;
+      if (e.error === 'stalled' && stalledRetries < 3) {
+        stalledRetries++;
+        el.status.textContent = 'Suara terputus oleh Chrome. Mencoba menyambungkan kembali…';
+        jumpTo(idx);
+        return;
+      }
+      finish(e.error === 'stalled'
+        ? 'Suara terhenti setelah 3 kali percobaan. Tekan Putar untuk melanjutkan.'
+        : 'Terjadi kesalahan suara: ' + e.error);
     });
   }
 
@@ -683,7 +699,7 @@
     if (!source.trim()){ el.status.textContent = 'Isi teks dulu sebelum memutar.'; el.teks.focus(); return; }
     token++;
     if (!speechCancelled && (synth.speaking || synth.pending)) cancelSpeech();
-    queue = chunk(source); idx = 0;
+    queue = chunk(source); idx = 0; stalledRetries = 0;
     renderReader(); setState('playing');
     addHistory(source.trim());
     next(token);
