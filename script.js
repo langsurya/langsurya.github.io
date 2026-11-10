@@ -394,6 +394,13 @@
     return parts;
   }
 
+  function normalizeTranslatedHyphens(text){
+    // Layanan terjemahan kadang mengubah nama ber-hyphen seperti "San-ho"
+    // menjadi "San - ho". Satukan kembali hanya hyphen ASCII yang berada
+    // di antara huruf; dash antarklausa dan tanda minus angka tidak tersentuh.
+    return String(text).replace(/(\p{L})\s*-\s*(?=\p{L})/gu, '$1-');
+  }
+
   async function translateToIndonesian(text){
     const sourceLang = (el.bahasa.value || 'en').split('-')[0].toLowerCase();
     if (sourceLang === 'id') return text;
@@ -404,7 +411,7 @@
       if (response.ok) {
         const data = await response.json();
         if (data.responseStatus === 200 && data.responseData?.translatedText) {
-          translated.push(data.responseData.translatedText);
+          translated.push(normalizeTranslatedHyphens(data.responseData.translatedText));
           continue;
         }
       }
@@ -417,7 +424,7 @@
       const fallbackData = await fallback.json();
       const fallbackText = fallbackData?.[0]?.map(segment => segment?.[0] || '').join('');
       if (!fallbackText) throw new Error('terjemahan tidak tersedia');
-      translated.push(fallbackText);
+      translated.push(normalizeTranslatedHyphens(fallbackText));
     }
     return translated.join('');
   }
