@@ -1,5 +1,5 @@
 (() => {
-  const APP_VERSION = 'web-v2026.10.12-1042';
+  const APP_VERSION = 'web-v2026.11.10-1408';
   const $ = id => document.getElementById(id);
   const el = {
     teks:$('teks'), hitung:$('hitung'), bahasa:$('bahasa'), suara:$('suara'),
@@ -77,8 +77,15 @@
     voiceSignature = signature;
     voices = available;
 
-    const prevLang = el.bahasa.value || store.get('tts:bahasa', null);
-    const prevVoice = el.suara.value || store.get('tts:suara', null);
+    // Saat halaman baru dimuat, select berisi opsi sementara
+    // "Memuat daftar suara…". Nilai sementara itu tidak boleh mengalahkan
+    // pilihan yang tersimpan, karena hasilnya selalu jatuh ke bahasa Indonesia.
+    const savedLang = store.get('tts:bahasa', null);
+    const savedVoice = store.get('tts:suara', null);
+    const currentLang = el.bahasa.disabled ? null : el.bahasa.value;
+    const currentVoice = el.suara.disabled ? null : el.suara.value;
+    const prevLang = savedLang || currentLang;
+    const prevVoice = savedVoice || currentVoice;
     el.bahasa.innerHTML = '';
     el.suara.innerHTML = '';
     if (!voices.length) {
@@ -336,7 +343,9 @@
     const w = t.trim() ? t.trim().split(/\s+/).length : 0;
     el.hitung.textContent = t.length.toLocaleString('id-ID') + ' karakter · ' + w.toLocaleString('id-ID') + ' kata';
     store.set('tts:draf', t);
-    applyDetectedLanguage();
+    // Deteksi otomatis hanya dipakai sebelum pengguna pernah memilih bahasa.
+    // Setelah pilihan tersimpan, refresh halaman harus mempertahankannya.
+    if (!store.get('tts:bahasa', null)) applyDetectedLanguage();
   }
   el.teks.addEventListener('input', updateCount);
   el.teks.value = store.get('tts:draf', '');
@@ -555,12 +564,17 @@
     // antrean macet (mis. tetap 1/378). Watchdog memanggil onend sekali saja
     // jika mesin suara sudah tidak berbicara.
     let ended = false, started = false, watch = null;
+    let lastActivity = Date.now(), hasBoundary = false;
     const done = () => {
       if (ended) return;
       ended = true; clearInterval(watch);
       onend && onend();
     };
-    u.onstart = () => { started = true; };
+    u.onstart = () => { started = true; lastActivity = Date.now(); };
+    u.onboundary = () => {
+      hasBoundary = true;
+      lastActivity = Date.now();
+    };
     u.onend = done;
     u.onerror = e => {
       ended = true; clearInterval(watch);
@@ -576,8 +590,24 @@
     // mesin suara juga di desktop, tetapi beri toleransi panjang agar buffering
     // singkat tidak salah dianggap macet.
     let idle = 0;
+    const estimatedMs = Math.max(4000,
+      clean.length / (14 * (+el.kecepatan.value || 1)) * 1000);
+    const hardDeadline = Date.now() + Math.max(15000, estimatedMs * 2.5 + 10000);
     watch = setInterval(() => {
       if (ended || speechCancelled) { clearInterval(watch); return; }
+      const now = Date.now();
+      // Chrome dapat terus melaporkan synth.speaking=true meskipun kanal suara
+      // online sebenarnya sudah mati. Karena itu jangan hanya mengandalkan
+      // speaking/pending: boundary yang berhenti atau batas waktu absolut juga
+      // menandakan sesi membeku.
+      const boundaryStalled = hasBoundary && now - lastActivity > 12000;
+      const deadlineStalled = now > hardDeadline;
+      if (!isMobile && (boundaryStalled || deadlineStalled)) {
+        ended = true;
+        clearInterval(watch);
+        onerror && onerror({ error:'stalled' });
+        return;
+      }
       if (!synth.speaking && !synth.pending) {
         const limit = isMobile ? (started ? 2 : 6) : (started ? 12 : 24);
         if (++idle >= limit) {
