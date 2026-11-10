@@ -1,5 +1,5 @@
 (() => {
-  const APP_VERSION = 'web-v2026.11.10-1418';
+  const APP_VERSION = 'web-v2026.11.10-1430';
   const $ = id => document.getElementById(id);
   const el = {
     teks:$('teks'), hitung:$('hitung'), bahasa:$('bahasa'), suara:$('suara'),
@@ -586,7 +586,14 @@
     // Mesin TTS tertentu menganggap kata kapital panjang sebagai singkatan
     // lalu mengejanya huruf demi huruf. Ubah hanya salinan yang diucapkan;
     // teks asli dan tampilan pembaca tetap dipertahankan.
-    return String(text).replace(/\b[A-Z]{4,}\b/g, word => word.toLowerCase());
+    return String(text)
+      .replace(/\b[A-Z]{4,}\b/g, word => word.toLowerCase())
+      // Dash di tengah kalimat sering dibaca sebagai kata atau membuat suara
+      // tersendat. Koma menghasilkan jeda pendek yang lebih natural, sementara
+      // tanda minus pada angka dan kata ber-hyphen tetap dipertahankan.
+      .replace(/\s+[—–-]+\s+/g, ', ')
+      .replace(/\.{3,}/g, '…')
+      .replace(/\s*,\s*,+/g, ', ');
   }
 
   function say(text, onend, onerror){
