@@ -1,6 +1,8 @@
 export function createWakeLockService({ navigatorRef = navigator, documentRef = document, windowRef = window, secureContext = window.isSecureContext, onStatus = () => {} } = {}) {
   let lock = null;
   let wanted = false;
+  let request = null;
+  let requestGeneration = 0;
   let audioContext = null;
   function keepAudioAwake(on) {
     try {
@@ -29,6 +31,7 @@ export function createWakeLockService({ navigatorRef = navigator, documentRef = 
   async function hold(on) {
     wanted = on;
     if (!on) {
+      requestGeneration++;
       const current = lock;
       lock = null;
       if (current) try { await current.release(); } catch {}
@@ -38,18 +41,42 @@ export function createWakeLockService({ navigatorRef = navigator, documentRef = 
     if (!secureContext) return onStatus('Layar tidak dapat ditahan: halaman harus dibuka melalui HTTPS.', true), false;
     if (!navigatorRef.wakeLock) return onStatus('Browser ini tidak menyediakan Screen Wake Lock.', true), false;
     if (lock || documentRef.visibilityState !== 'visible') return Boolean(lock);
+    if (request) return request;
+    const generation = requestGeneration;
     try {
-      lock = await navigatorRef.wakeLock.request('screen');
-      onStatus('Layar ditahan tetap menyala selama pembacaan.', false);
-      lock.addEventListener('release', () => {
-        lock = null;
-        if (wanted) onStatus('Penahan layar dilepas oleh browser atau sistem.', true);
-      }, { once:true });
-      return true;
+      request = navigatorRef.wakeLock.request('screen').then(async acquiredLock => {
+        if (!wanted || generation !== requestGeneration || documentRef.visibilityState !== 'visible') {
+          try { await acquiredLock.release(); } catch {}
+          return false;
+        }
+        lock = acquiredLock;
+        onStatus('Layar ditahan tetap menyala selama pembacaan.', false);
+        acquiredLock.addEventListener('release', () => {
+          if (lock === acquiredLock) lock = null;
+          if (wanted && documentRef.visibilityState === 'visible') {
+            onStatus('Penahan layar dilepas oleh browser atau sistem.', true);
+          }
+        }, { once:true });
+        return true;
+      });
+      return await request;
     } catch (error) {
       onStatus('Screen Wake Lock ditolak oleh browser atau sistem' + (error?.name ? ' (' + error.name + ')' : '') + '.', true);
       return false;
+    } finally {
+      request = null;
     }
   }
-  return Object.freeze({ hold, keepAudioAwake, isHeld:() => Boolean(lock) });
+
+  async function handleVisibilityChange() {
+    if (documentRef.visibilityState !== 'visible') {
+      const current = lock;
+      lock = null;
+      if (current) try { await current.release(); } catch {}
+      return false;
+    }
+    return wanted ? hold(true) : false;
+  }
+
+  return Object.freeze({ hold, handleVisibilityChange, keepAudioAwake, isHeld:() => Boolean(lock) });
 }

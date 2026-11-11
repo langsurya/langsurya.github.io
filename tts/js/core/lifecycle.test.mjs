@@ -3,6 +3,7 @@ import test from 'node:test';
 import { createAppState } from './app-state.js';
 import { createTranslationLifecycle } from '../app.js';
 import { shouldApplyDetectedLanguage, snapshotSelectedVoice } from '../services/voice-service.js';
+import { createWakeLockService } from '../services/wake-lock-service.js';
 
 test('manual language preference blocks detection', () => {
   assert.equal(shouldApplyDetectedLanguage('manual'), false);
@@ -36,4 +37,71 @@ test('cancel restores cancelled translation state', () => {
   const lifecycle = createTranslationLifecycle({ appState, translationService:{ cancel() {}, translate() {} } });
   lifecycle.cancel();
   assert.equal(appState.getSnapshot().translation.status, 'cancelled');
+});
+
+function createWakeLockHarness() {
+  const locks = [];
+  let requests = 0;
+  const documentRef = { visibilityState:'visible' };
+  const navigatorRef = {
+    wakeLock: {
+      async request() {
+        requests++;
+        const listeners = new Map();
+        const lock = {
+          released:false,
+          addEventListener(type, listener) { listeners.set(type, listener); },
+          async release() {
+            if (this.released) return;
+            this.released = true;
+            listeners.get('release')?.();
+          }
+        };
+        locks.push(lock);
+        return lock;
+      }
+    }
+  };
+  const service = createWakeLockService({
+    navigatorRef,
+    documentRef,
+    windowRef:{},
+    secureContext:true
+  });
+  return { documentRef, locks, service, getRequests:() => requests };
+}
+
+test('wake lock deduplicates concurrent requests', async () => {
+  const harness = createWakeLockHarness();
+  const first = harness.service.hold(true);
+  const second = harness.service.hold(true);
+  assert.equal(await first, true);
+  assert.equal(await second, true);
+  assert.equal(harness.getRequests(), 1);
+  assert.equal(harness.service.isHeld(), true);
+});
+
+test('wake lock releases while hidden and reacquires when visible', async () => {
+  const harness = createWakeLockHarness();
+  await harness.service.hold(true);
+  harness.documentRef.visibilityState = 'hidden';
+  await harness.service.handleVisibilityChange();
+  assert.equal(harness.locks[0].released, true);
+  assert.equal(harness.service.isHeld(), false);
+
+  harness.documentRef.visibilityState = 'visible';
+  await harness.service.handleVisibilityChange();
+  assert.equal(harness.getRequests(), 2);
+  assert.equal(harness.service.isHeld(), true);
+});
+
+test('wake lock remains optional when unsupported', async () => {
+  const service = createWakeLockService({
+    navigatorRef:{},
+    documentRef:{ visibilityState:'visible' },
+    windowRef:{},
+    secureContext:true
+  });
+  assert.equal(await service.hold(true), false);
+  assert.equal(service.isHeld(), false);
 });

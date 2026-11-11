@@ -454,9 +454,7 @@ function bootTtsApp() {
 
   const wakeLockService = createWakeLockService({ onStatus:setWakeLockMessage });
 
-  document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible' && state === 'playing') wakeLockService.hold(true);
-  });
+  document.addEventListener('visibilitychange', () => wakeLockService.handleVisibilityChange());
 
   // Beberapa browser Chromium turunan hanya mengizinkan permintaan Wake Lock
   // langsung dari interaksi pengguna. Coba lagi pada sentuhan saat membaca.
