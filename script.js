@@ -1,5 +1,9 @@
+import { APP_VERSION } from './tts/js/config/constants.js';
+import { createAppState } from './tts/js/core/app-state.js';
+import { createStorageService } from './tts/js/services/storage-service.js';
+import { createTranslationService } from './tts/js/services/translation-service.js';
+
 (() => {
-  const APP_VERSION = 'web-v2026.11.11-1123';
   const $ = id => document.getElementById(id);
   const el = {
     teks:$('teks'), hitung:$('hitung'), bahasa:$('bahasa'), suara:$('suara'),
@@ -48,10 +52,44 @@
   }
   const synth = window.speechSynthesis;
 
-  /* ---------- penyimpanan (aman jika diblokir) ---------- */
+  /* ---------- penyimpanan dan state aplikasi ---------- */
+  const storage = createStorageService();
+  const appState = createAppState({
+    settings: {
+      rate: storage.getSetting('kecepatan'),
+      pitch: storage.getSetting('nada'),
+      volume: storage.getSetting('volume')
+    }
+  });
+  const translationService = createTranslationService();
   const store = {
-    get(k, d){ try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch { return d; } },
-    set(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
+    get(key, fallback) {
+      const readers = {
+        'tts:tema': () => storage.getTheme(),
+        'tts:app_version': () => storage.getAppVersion(),
+        'tts:bahasa': () => storage.getLanguage(),
+        'tts:suara': () => storage.getVoice(),
+        'tts:kecepatan': () => storage.getSetting('kecepatan'),
+        'tts:nada': () => storage.getSetting('nada'),
+        'tts:volume': () => storage.getSetting('volume'),
+        'tts:riwayat': () => storage.getHistory()
+      };
+      const value = readers[key]?.();
+      return value === null || value === undefined ? fallback : value;
+    },
+    set(key, value) {
+      const writers = {
+        'tts:tema': () => storage.setTheme(value),
+        'tts:app_version': () => storage.setAppVersion(value),
+        'tts:bahasa': () => storage.setLanguage(value),
+        'tts:suara': () => storage.setVoice(value),
+        'tts:kecepatan': () => storage.setSetting('kecepatan', value),
+        'tts:nada': () => storage.setSetting('nada', value),
+        'tts:volume': () => storage.setSetting('volume', value),
+        'tts:riwayat': () => storage.setHistory(value)
+      };
+      return writers[key]?.() ?? false;
+    }
   };
 
   /* ---------- tema ---------- */
@@ -312,6 +350,8 @@
     if (el.aturInfo) el.aturInfo.textContent =
       ctl.kecepatan.fmt(+el.kecepatan.value) + ' · ' + ctl.volume.fmt(+el.volume.value);
     store.set('tts:' + k, v);
+    const settingNames = { kecepatan:'rate', nada:'pitch', volume:'volume' };
+    appState.updateSettings({ [settingNames[k]]:v });
   }
 
   function setVal(k, v){
@@ -390,72 +430,12 @@
   });
   updateTranslateMode();
 
-  function translationParts(text, max = 450){
-    const parts = [];
-    let rest = text;
-    while (rest.length > max) {
-      let cut = Math.max(rest.lastIndexOf('\n', max), rest.lastIndexOf('. ', max));
-      if (cut < max * 0.55) cut = rest.lastIndexOf(' ', max);
-      if (cut < 1) cut = max;
-      else if (rest.slice(cut, cut + 2) === '. ') cut++;
-      parts.push(rest.slice(0, cut));
-      rest = rest.slice(cut);
-    }
-    if (rest) parts.push(rest);
-    return parts;
-  }
-
-  function normalizeTranslatedHyphens(text){
-    // Layanan terjemahan kadang mengubah nama ber-hyphen seperti "San-ho"
-    // menjadi "San - ho". Satukan kembali hanya hyphen ASCII yang berada
-    // di antara huruf; dash antarklausa dan tanda minus angka tidak tersentuh.
-    return String(text).replace(/(\p{L})\s*-\s*(?=\p{L})/gu, '$1-');
-  }
-
   async function translateToIndonesian(text, onProgress){
-    const sourceLang = (el.bahasa.value || 'en').split('-')[0].toLowerCase();
-    if (sourceLang === 'id') {
-      onProgress?.(100);
-      return text;
-    }
-    const translated = [];
-    const parts = translationParts(text);
-    for (let index = 0; index < parts.length; index++) {
-      const part = parts[index];
-      const leadingWhitespace = part.match(/^\s*/)?.[0] || '';
-      const trailingWhitespace = part.match(/\s*$/)?.[0] || '';
-      const contentEnd = part.length - trailingWhitespace.length;
-      const content = part.slice(leadingWhitespace.length, contentEnd);
-
-      if (!content) {
-        translated.push(part);
-        onProgress?.(Math.round(((index + 1) / parts.length) * 100));
-        continue;
-      }
-
-      const params = new URLSearchParams({ q: content, langpair: sourceLang + '|id' });
-      const response = await fetch('https://api.mymemory.translated.net/get?' + params);
-      if (response.ok) {
-        const data = await response.json();
-        if (data.responseStatus === 200 && data.responseData?.translatedText) {
-          translated.push(leadingWhitespace + normalizeTranslatedHyphens(data.responseData.translatedText) + trailingWhitespace);
-          onProgress?.(Math.round(((index + 1) / parts.length) * 100));
-          continue;
-        }
-      }
-
-      const fallbackParams = new URLSearchParams({
-        client:'gtx', sl:sourceLang, tl:'id', dt:'t', q:content
-      });
-      const fallback = await fetch('https://translate.googleapis.com/translate_a/single?' + fallbackParams);
-      if (!fallback.ok) throw new Error('layanan terjemahan sedang membatasi permintaan');
-      const fallbackData = await fallback.json();
-      const fallbackText = fallbackData?.[0]?.map(segment => segment?.[0] || '').join('');
-      if (!fallbackText) throw new Error('terjemahan tidak tersedia');
-      translated.push(leadingWhitespace + normalizeTranslatedHyphens(fallbackText) + trailingWhitespace);
-      onProgress?.(Math.round(((index + 1) / parts.length) * 100));
-    }
-    return translated.join('');
+    const result = await translationService.translate(text, el.bahasa.value || 'en', (percent, sessionId) => {
+      appState.transitionTranslation('loading', { progress:percent, sessionId });
+      onProgress?.(percent);
+    });
+    return result.text;
   }
 
   /* ---------- pecah teks menjadi kalimat ---------- */
@@ -602,6 +582,7 @@
 
   function setState(s){
     state = s;
+    appState.transitionPlayer(s, { index:idx, queueLength:queue.length, sessionId:token });
     // Oscillator keep-awake membantu perangkat mobile, tetapi pada audio
     // desktop tertentu justru berebut kanal dengan speech synthesis dan
     // membuat suara patah-patah.
@@ -835,6 +816,8 @@
 
   function finish(msg, completed){
     token++; cancelSpeech();
+    translationService.cancel();
+    appState.transitionTranslation('idle', { progress:0 });
     if (completed){ spans.forEach(s => s.className = 'done'); el.pBar.style.width = '100%'; }
     else { spans.forEach(s => s.className = ''); el.pBar.style.width = '0%'; }
     idx = 0;
@@ -858,6 +841,7 @@
     if (readMode() === 'id') {
       el.status.textContent = '';
       setTranslationProgress('loading', 0);
+      appState.transitionTranslation('loading', { progress:0 });
       el.putar.disabled = true;
       try {
         source = await translateToIndonesian(original, percent => {
@@ -869,9 +853,12 @@
         playbackLang = playbackVoice?.lang || 'id-ID';
         const outputVoice = playbackVoice?.name || 'suara bawaan browser';
         setTranslationProgress('done', 100);
+        appState.transitionTranslation('done', { progress:100 });
         el.status.textContent = 'Bahasa Indonesia · ' + outputVoice;
       } catch (error) {
+        if (error.code === 'ABORTED') return;
         setTranslationProgress('error', 0);
+        appState.transitionTranslation('error', { progress:0 });
         el.status.textContent = 'Terjemahan gagal: ' + error.message + '. Silakan pilih teks original atau coba lagi.';
         return;
       } finally {
