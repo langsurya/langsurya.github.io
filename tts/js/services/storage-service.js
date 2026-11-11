@@ -62,6 +62,15 @@ export function createStorageService(storage = window.localStorage) {
     setLanguage(language) {
       return isString(language) && Boolean(language.trim()) && writeJson(storage, STORAGE_KEYS.language, language);
     },
+    getLanguagePreference() {
+      const preference = getString(STORAGE_KEYS.languagePreference);
+      if (preference === 'manual' || preference === 'detected') return preference;
+      return this.getLanguage() ? 'manual' : 'detected';
+    },
+    setLanguagePreference(preference) {
+      return (preference === 'manual' || preference === 'detected') &&
+        writeJson(storage, STORAGE_KEYS.languagePreference, preference);
+    },
     getVoice() {
       return getString(STORAGE_KEYS.voice);
     },

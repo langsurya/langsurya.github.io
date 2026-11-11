@@ -2,8 +2,15 @@ import { APP_VERSION } from './tts/js/config/constants.js';
 import { createAppState } from './tts/js/core/app-state.js';
 import { createStorageService } from './tts/js/services/storage-service.js';
 import { createTranslationService } from './tts/js/services/translation-service.js';
+import { createSpeechService } from './tts/js/services/speech-service.js';
+import { createVoiceService, normalizeLocale } from './tts/js/services/voice-service.js';
+import { createWakeLockService } from './tts/js/services/wake-lock-service.js';
+import { chunkText, createReaderController } from './tts/js/controllers/reader-controller.js';
+import { createPlayerController } from './tts/js/controllers/player-controller.js';
+import { createSettingsController } from './tts/js/controllers/settings-controller.js';
+import { createHistoryController } from './tts/js/controllers/history-controller.js';
 
-(() => {
+function bootTtsApp() {
   const $ = id => document.getElementById(id);
   const el = {
     teks:$('teks'), hitung:$('hitung'), bahasa:$('bahasa'), suara:$('suara'),
@@ -68,6 +75,7 @@ import { createTranslationService } from './tts/js/services/translation-service.
         'tts:tema': () => storage.getTheme(),
         'tts:app_version': () => storage.getAppVersion(),
         'tts:bahasa': () => storage.getLanguage(),
+        'tts:bahasa_preference': () => storage.getLanguagePreference(),
         'tts:suara': () => storage.getVoice(),
         'tts:kecepatan': () => storage.getSetting('kecepatan'),
         'tts:nada': () => storage.getSetting('nada'),
@@ -82,6 +90,7 @@ import { createTranslationService } from './tts/js/services/translation-service.
         'tts:tema': () => storage.setTheme(value),
         'tts:app_version': () => storage.setAppVersion(value),
         'tts:bahasa': () => storage.setLanguage(value),
+        'tts:bahasa_preference': () => storage.setLanguagePreference(value),
         'tts:suara': () => storage.setVoice(value),
         'tts:kecepatan': () => storage.setSetting('kecepatan', value),
         'tts:nada': () => storage.setSetting('nada', value),
@@ -119,14 +128,8 @@ import { createTranslationService } from './tts/js/services/translation-service.
 
   /* ---------- suara ---------- */
   let voices = [];
-  let voiceSignature = null;
-  function loadVoices(){
-    const available = synth.getVoices();
-    const signature = available.map(v => [v.voiceURI, v.name, v.lang, v.localService].join('\x00')).join('\x01');
-    if (signature === voiceSignature) return;
-    voiceSignature = signature;
+  function loadVoices(available){
     voices = available;
-
     // Saat halaman baru dimuat, select berisi opsi sementara
     // "Memuat daftar suara…". Nilai sementara itu tidak boleh mengalahkan
     // pilihan yang tersimpan, karena hasilnya selalu jatuh ke bahasa Indonesia.
@@ -221,19 +224,6 @@ import { createTranslationService } from './tts/js/services/translation-service.
     'gu-in': 'ગુજરાતી (Gujarati)'
   };
 
-  function normalizeLocale(lang){
-    if (!lang) return lang;
-    let value = String(lang).trim().toLowerCase().replace(/_/g, '-').replace(/#/g, '-');
-    const parts = value.split('-').filter(Boolean);
-    const normalized = [];
-    const scriptVariants = new Set(['hant','hans','latn','cyrl','arab','jpan','hang','deva','thai','mong','guru','beng','gujr','taml','telu','knda','mlym','orya']);
-    for (const part of parts) {
-      if (scriptVariants.has(part)) break;
-      normalized.push(part);
-    }
-    return normalized.join('-');
-  }
-
   function labelForLanguage(lang){
     const key = normalizeLocale(lang);
     return languageLabels[key] || languageLabels[key.split('-')[0]] || (lang || '').replace(/_/g, '-');
@@ -274,33 +264,9 @@ import { createTranslationService } from './tts/js/services/translation-service.
     if (!el.suara.value && list.length) el.suara.selectedIndex = 0;
   }
 
-  function detectLanguageByText(text){
-    const trimmed = (text || '').trim();
-    if (!trimmed || trimmed.length < 40) return null;
-
-    const tokens = (trimmed.toLowerCase().match(/[a-z]+/g) || []).filter(Boolean);
-    if (tokens.length < 6) return null;
-
-    const indoWords = new Set(['yang','dan','untuk','dengan','ini','itu','adalah','akan','dari','ke','di','jika','karena','dapat','saya','kami','kamu','mereka','tidak','bisa','sudah','harus','setiap','semua','juga','dalam','oleh','lebih','apakah','benar']);
-    const engWords = new Set(['the','and','for','with','this','that','from','into','your','you','are','not','can','will','have','there','their','because','when','where','what','about','please','would','could','should','more','than','then','them','they']);
-
-    let idScore = 0;
-    let enScore = 0;
-    tokens.forEach(token => {
-      if (indoWords.has(token)) idScore += 2;
-      if (engWords.has(token)) enScore += 2;
-      if (token.endsWith('ng') || token.endsWith('ny') || token.endsWith('kh') || token.endsWith('sy')) idScore += 1;
-      if (token.endsWith('ed') || token.endsWith('ing') || token.endsWith('tion') || token.endsWith('ly')) enScore += 1;
-    });
-
-    if (idScore === 0 && enScore === 0) return null;
-    if (Math.abs(idScore - enScore) < 2) return null;
-    return idScore > enScore ? 'id' : 'en';
-  }
-
   function applyDetectedLanguage(){
     if (!voices.length) return;
-    const detected = detectLanguageByText(el.teks.value);
+    const detected = voiceService.detectLanguage(el.teks.value);
     if (!detected) return;
     const langList = uniqueLanguageOptions(preferredLangOrder([...new Set(voices.map(v => normalizeLocale(v.lang)))]));
     const target = langList.find(l => normalizeLocale(l).startsWith(detected)) ||
@@ -311,17 +277,19 @@ import { createTranslationService } from './tts/js/services/translation-service.
     fillVoices();
     store.set('tts:bahasa', normalizeLocale(el.bahasa.value));
     store.set('tts:suara', el.suara.value);
+    store.set('tts:bahasa_preference', 'detected');
+    return true;
   }
 
-  synth.addEventListener('voiceschanged', loadVoices);
-  loadVoices();
-  let voiceRetryCount = 0;
-  const voiceRetry = setInterval(() => {
-    loadVoices();
-    if (++voiceRetryCount >= 40) clearInterval(voiceRetry);
-  }, 250);
-  el.bahasa.onchange = () => { fillVoices(); store.set('tts:bahasa', normalizeLocale(el.bahasa.value)); store.set('tts:suara', el.suara.value); };
-  el.suara.onchange = () => store.set('tts:suara', el.suara.value);
+  const voiceService = createVoiceService({ synth, storage, onVoicesChanged:loadVoices });
+  voiceService.start();
+  el.bahasa.onchange = () => {
+    cancelActiveSession('Bahasa diubah.');
+    fillVoices();
+    voiceService.selectLanguage(el.bahasa.value, 'manual');
+    voiceService.selectVoice(el.suara.value);
+  };
+  el.suara.onchange = () => voiceService.selectVoice(el.suara.value);
 
   /* ---------- kontrol kecepatan / nada / volume ---------- */
   const ctl = {
@@ -330,12 +298,18 @@ import { createTranslationService } from './tts/js/services/translation-service.
     volume:   { def:1, fmt:v => Math.round(v * 100) + '%' }
   };
   const near = (a, b) => Math.abs(a - b) < 1e-6;
+  const settingsController = createSettingsController({
+    controls:el,
+    storage,
+    appState,
+    formatters:Object.fromEntries(Object.entries(ctl).map(([name, config]) => [name, config.fmt]))
+  });
 
   function render(k){
     const r = el[k], v = +r.value, min = +r.min, max = +r.max;
     const txt = ctl[k].fmt(v);
     $('o-' + k).textContent = txt;
-    r.setAttribute('aria-valuetext', txt);
+    settingsController.render(k);
     r.style.setProperty('--pct', ((v - min) / (max - min) * 100) + '%');
     document.querySelectorAll('.step[data-target="' + k + '"]').forEach(b => {
       b.disabled = b.dataset.dir === '-1' ? v <= min : v >= max;
@@ -349,9 +323,6 @@ import { createTranslationService } from './tts/js/services/translation-service.
     if (reset) reset.hidden = near(v, ctl[k].def);
     if (el.aturInfo) el.aturInfo.textContent =
       ctl.kecepatan.fmt(+el.kecepatan.value) + ' · ' + ctl.volume.fmt(+el.volume.value);
-    store.set('tts:' + k, v);
-    const settingNames = { kecepatan:'rate', nada:'pitch', volume:'volume' };
-    appState.updateSettings({ [settingNames[k]]:v });
   }
 
   function setVal(k, v){
@@ -396,9 +367,12 @@ import { createTranslationService } from './tts/js/services/translation-service.
     el.hitung.textContent = t.length.toLocaleString('id-ID') + ' karakter · ' + w.toLocaleString('id-ID') + ' kata';
     // Deteksi otomatis hanya dipakai sebelum pengguna pernah memilih bahasa.
     // Setelah pilihan tersimpan, refresh halaman harus mempertahankannya.
-    if (!store.get('tts:bahasa', null)) applyDetectedLanguage();
+    if (store.get('tts:bahasa_preference', 'detected') !== 'manual') applyDetectedLanguage();
   }
-  el.teks.addEventListener('input', updateCount);
+  el.teks.addEventListener('input', () => {
+    cancelActiveSession('Teks diubah.');
+    updateCount();
+  });
   el.teks.value = '';
   window.addEventListener('pageshow', event => {
     if (event.persisted) {
@@ -416,17 +390,13 @@ import { createTranslationService } from './tts/js/services/translation-service.
     const mode = readMode();
     el.translateInfo.hidden = mode !== 'id';
     el.modeBaca.dataset.mode = mode;
-    // Mode menentukan prioritas. Bahasa pada select adalah bahasa sumber untuk
-    // teks original maupun penerjemahan, bukan bahasa keluaran terjemahan.
-    // Ini juga memulihkan pilihan Indonesia yang tersimpan oleh versi lama.
-    applyDetectedLanguage();
+    // Bahasa pada select tetap bahasa sumber dan tidak diubah oleh mode baca.
   }
   el.modeBaca.addEventListener('change', () => {
+    const wasActive = state !== 'idle';
+    cancelActiveSession('Mode bacaan diubah.');
     updateTranslateMode();
-    if (state !== 'idle') {
-      finish('Mode bacaan diubah. Menyiapkan ulang teks…');
-      start();
-    }
+    if (wasActive) start();
   });
   updateTranslateMode();
 
@@ -443,43 +413,8 @@ import { createTranslationService } from './tts/js/services/translation-service.
   // Koma TIDAK memecah potongan: mesin suara memberi jeda koma yang singkat,
   // jauh lebih cepat daripada jeda antar-ucapan (titik). Kalimat panjang
   // hanya dipotong bila > max, dan sebisa mungkin di koma.
-  function chunk(text, max = 300){
-    const out = [], re = /[^.!?;:\n]+[.!?;:]*["'”’)\]]*/g, ws = /\s/;
-    let m;
-    while ((m = re.exec(text))){
-      let s = m.index, e = s + m[0].length;
-      while (s < e && ws.test(text[s])) s++;
-      while (e > s && ws.test(text[e - 1])) e--;
-      if (e <= s) continue;
-      while (e - s > max){
-        const comma = text.lastIndexOf(',', s + max);
-        if (comma > s + 60 && e - comma > 30) {
-          out.push({ start:s, end:comma + 1, text:text.slice(s, comma + 1) });
-          s = comma + 1;
-          while (s < e && ws.test(text[s])) s++;
-          continue;
-        }
-        let cut = text.lastIndexOf(' ', s + max);
-        if (cut <= s) {
-          cut = text.indexOf(' ', s + max);
-          if (cut < 0 || cut >= e) break;
-        }
-        if (e - cut < 45) {
-          const balancedCut = text.lastIndexOf(' ', s + max - 45);
-          if (balancedCut > s) cut = balancedCut;
-          else if (e - s <= max + 45) break;
-        }
-        out.push({ start:s, end:cut, text:text.slice(s, cut) });
-        s = cut;
-        while (s < e && ws.test(text[s])) s++;
-      }
-      out.push({ start:s, end:e, text:text.slice(s, e) });
-    }
-    return out;
-  }
-
   /* ---------- pemutaran ---------- */
-  let queue = [], idx = 0, state = 'idle', spans = [], token = 0, source = '', speechCancelled = false, chunkTimer = null, stalledRetries = 0;
+  let queue = [], idx = 0, state = 'idle', token = 0, source = '', speechCancelled = false, chunkTimer = null, stalledRetries = 0;
   // undefined = belum ada sesi, sehingga Uji Suara mengikuti select.
   // null = sesi sengaja tidak menemukan voice khusus dan hanya memakai lang.
   let playbackVoice, playbackLang = null;
@@ -487,39 +422,9 @@ import { createTranslationService } from './tts/js/services/translation-service.
   function cancelSpeech(){
     clearTimeout(chunkTimer);
     chunkTimer = null;
-    synth.cancel();
+    speechService.cancel();
     speechCancelled = true;
   }
-
-  /* ---------- jaga perangkat audio tetap aktif ----------
-     Di antara kalimat, output audio (Bluetooth/driver hemat daya) bisa
-     tertidur lalu bangun terlambat, sehingga awal kalimat terpotong
-     ("Me..ngar", "T..pi"). Nada hampir tanpa suara menjaganya tetap aktif. */
-  let keepCtx = null;
-  function keepAwake(on){
-    try {
-      if (on) {
-        if (!keepCtx) {
-          const AC = window.AudioContext || window.webkitAudioContext;
-          if (!AC) return;
-          keepCtx = new AC();
-          const g = keepCtx.createGain();
-          g.gain.value = 0.0005;
-          const osc = keepCtx.createOscillator();
-          osc.frequency.value = 30;
-          osc.connect(g);
-          g.connect(keepCtx.destination);
-          osc.start();
-        }
-        if (keepCtx.state === 'suspended') keepCtx.resume();
-      } else if (keepCtx && keepCtx.state === 'running') {
-        keepCtx.suspend();
-      }
-    } catch {}
-  }
-
-  /* ---------- tahan layar tetap menyala selama membaca ---------- */
-  let screenWakeLock = null;
   let wakeLockMessage = '';
 
   function setWakeLockMessage(message, warning = false){
@@ -528,70 +433,30 @@ import { createTranslationService } from './tts/js/services/translation-service.
     el.player.title = message;
   }
 
-  async function holdScreenAwake(on){
-    if (!on) {
-      if (screenWakeLock) {
-        const lock = screenWakeLock;
-        screenWakeLock = null;
-        try { await lock.release(); } catch {}
-      }
-      setWakeLockMessage('');
-      return;
-    }
-
-    if (!window.isSecureContext) {
-      setWakeLockMessage('Layar tidak dapat ditahan: halaman harus dibuka melalui HTTPS.', true);
-      return false;
-    }
-
-    if (!('wakeLock' in navigator)) {
-      setWakeLockMessage('Opera ini tidak menyediakan Screen Wake Lock. Gunakan Chrome atau Edge agar layar tetap menyala.', true);
-      return false;
-    }
-
-    if (screenWakeLock) return true;
-    if (document.visibilityState !== 'visible') return false;
-    try {
-      screenWakeLock = await navigator.wakeLock.request('screen');
-      setWakeLockMessage('Layar ditahan tetap menyala selama pembacaan.');
-      screenWakeLock.addEventListener('release', () => {
-        screenWakeLock = null;
-        if (state === 'playing' && document.visibilityState === 'visible') {
-          setWakeLockMessage('Penahan layar dilepas oleh browser atau sistem.', true);
-        } else {
-          setWakeLockMessage('');
-        }
-      }, { once:true });
-      return true;
-    } catch (error) {
-      const reason = error && error.name ? ' (' + error.name + ')' : '';
-      setWakeLockMessage('Screen Wake Lock ditolak oleh browser atau sistem' + reason + '.', true);
-      return false;
-    }
-  }
+  const wakeLockService = createWakeLockService({ onStatus:setWakeLockMessage });
 
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible' && state === 'playing') holdScreenAwake(true);
+    if (document.visibilityState === 'visible' && state === 'playing') wakeLockService.hold(true);
   });
 
   // Beberapa browser Chromium turunan hanya mengizinkan permintaan Wake Lock
   // langsung dari interaksi pengguna. Coba lagi pada sentuhan saat membaca.
   document.addEventListener('pointerdown', () => {
-    if (state === 'playing' && !screenWakeLock) holdScreenAwake(true);
+    if (state === 'playing' && !wakeLockService.isHeld()) wakeLockService.hold(true);
   }, { passive:true });
 
   function setState(s){
     state = s;
-    appState.transitionPlayer(s, { index:idx, queueLength:queue.length, sessionId:token });
     // Oscillator keep-awake membantu perangkat mobile, tetapi pada audio
     // desktop tertentu justru berebut kanal dengan speech synthesis dan
     // membuat suara patah-patah.
-    keepAwake(s === 'playing' && matchMedia('(max-width: 600px)').matches);
-    holdScreenAwake(s === 'playing');
+    wakeLockService.keepAudioAwake(s === 'playing' && matchMedia('(max-width: 600px)').matches);
+    wakeLockService.hold(s === 'playing');
     el.player.dataset.state = s;
-    const lbl = s === 'playing' ? 'Jeda' : s === 'paused' ? 'Lanjutkan' : 'Putar';
+    const lbl = s === 'playing' ? 'Jeda' : s === 'paused' ? 'Lanjutkan' : s === 'preparing' ? 'Menyiapkan' : 'Putar';
     el.putar.setAttribute('aria-label', lbl);
     el.putar.title = lbl + (s === 'playing' ? '' : ' (Ctrl+Enter)');
+    el.putar.disabled = s === 'preparing';
     el.berhenti.disabled = s === 'idle';
     el.uji.disabled = s !== 'idle';
     el.mundur.disabled = el.maju.disabled = s === 'idle';
@@ -599,6 +464,16 @@ import { createTranslationService } from './tts/js/services/translation-service.
     if (s === 'playing') startClock(); else stopClock();
     if (s === 'playing' && wakeLockMessage) el.status.textContent = wakeLockMessage;
   }
+  const playerController = createPlayerController({ appState, onStateChange:setState });
+  const speechService = createSpeechService({ synth, Utterance:SpeechSynthesisUtterance, matchMedia });
+  const readerController = createReaderController({
+    reader:el.reader,
+    empty:$('reader-empty'),
+    player:el.player,
+    panel:el.panel,
+    getLastUserScroll:() => userScrollAt,
+    onSelect:index => jumpTo(index)
+  });
 
   /* ---------- countdown sisa waktu ---------- */
   const CPS = 14; // perkiraan karakter per detik pada kecepatan 1×
@@ -620,6 +495,7 @@ import { createTranslationService } from './tts/js/services/translation-service.
   /* ---------- skip mundur / maju (per kalimat) ---------- */
   function skip(dir){
     if (state === 'idle' || !queue.length) return;
+    playerController.skip({ index:idx, queueLength:queue.length });
     jumpTo(Math.min(queue.length - 1, Math.max(0, idx + dir)));
   }
   el.mundur.onclick = () => skip(-1);
@@ -631,141 +507,25 @@ import { createTranslationService } from './tts/js/services/translation-service.
     el.pCount.textContent = queue.length ? Math.min(idx + 1, queue.length) + ' / ' + queue.length : '';
   }
 
-  function normalizeTextForSpeech(text){
-    // Mesin TTS tertentu menganggap kata kapital panjang sebagai singkatan
-    // lalu mengejanya huruf demi huruf. Ubah hanya salinan yang diucapkan;
-    // teks asli dan tampilan pembaca tetap dipertahankan.
-    return String(text)
-      .replace(/\b[A-Z]{4,}\b/g, word => word.toLowerCase())
-      // Dash di tengah kalimat sering dibaca sebagai kata atau membuat suara
-      // tersendat. Koma menghasilkan jeda pendek yang lebih natural, sementara
-      // tanda minus pada angka dan kata ber-hyphen tetap dipertahankan.
-      .replace(/\s+[—–-]+\s+/g, ', ')
-      .replace(/\.{3,}/g, '…')
-      .replace(/\s*,\s*,+/g, ', ');
-  }
-
-  function say(text, onend, onerror){
-    // Suara (terutama Google online) sering memotong suku kata pertama
-    // (Tapi → "api", Mereka → "ka"). Buang kutip/kurung di awal dan beri
-    // bantalan jeda pendek di depan agar kata pertama terdengar utuh.
-    const clean = normalizeTextForSpeech(text).replace(/^[\s"'“”‘’«(\[]+/, '');
-    const isMobile = matchMedia('(max-width: 600px)').matches;
-    // Bantalan NBSP hanya diperlukan pada mesin suara mobile. Google online
-    // di desktop dapat memproses bantalan ini sebagai potongan ucapan pendek.
-    const spokenText = isMobile ? '\u00A0\u00A0' + clean : clean;
-    const u = new SpeechSynthesisUtterance(spokenText);
-    const v = playbackVoice === undefined
-      ? voices.find(x => x.name === el.suara.value)
-      : playbackVoice;
-    if (v){ u.voice = v; u.lang = v.lang; } else u.lang = playbackLang || el.bahasa.value || 'en-US';
-    u.rate = +el.kecepatan.value; u.pitch = +el.nada.value; u.volume = +el.volume.value;
-    // Di sebagian browser mobile, onend kadang tidak terpanggil sehingga
-    // antrean macet (mis. tetap 1/378). Watchdog memanggil onend sekali saja
-    // jika mesin suara sudah tidak berbicara.
-    let ended = false, started = false, watch = null;
-    let lastActivity = Date.now(), hasBoundary = false;
-    const done = () => {
-      if (ended) return;
-      ended = true; clearInterval(watch);
-      onend && onend();
-    };
-    u.onstart = () => { started = true; lastActivity = Date.now(); };
-    u.onboundary = () => {
-      hasBoundary = true;
-      lastActivity = Date.now();
-    };
-    u.onend = done;
-    u.onerror = e => {
-      ended = true; clearInterval(watch);
-      if (e.error !== 'canceled' && e.error !== 'interrupted') onerror && onerror(e);
-    };
-    speechCancelled = false;
-    // Aplikasi tidak memakai speechSynthesis.pause(). Memanggil resume()
-    // sebelum setiap kalimat dapat mengubah status sesi media Chrome dan
-    // mengganggu suara Google online yang masih menutup kalimat sebelumnya.
-    synth.speak(u);
-    // Chromium kadang kehilangan sesi suara Google online ketika tab lain
-    // memuat ulang atau berpindah halaman tanpa mengirim onend/onerror. Pantau
-    // mesin suara juga di desktop, tetapi beri toleransi panjang agar buffering
-    // singkat tidak salah dianggap macet.
-    let idle = 0;
-    const estimatedMs = Math.max(4000,
-      clean.length / (14 * (+el.kecepatan.value || 1)) * 1000);
-    const hardDeadline = Date.now() + Math.max(15000, estimatedMs * 2.5 + 10000);
-    watch = setInterval(() => {
-      if (ended || speechCancelled) { clearInterval(watch); return; }
-      const now = Date.now();
-      // Chrome dapat terus melaporkan synth.speaking=true meskipun kanal suara
-      // online sebenarnya sudah mati. Karena itu jangan hanya mengandalkan
-      // speaking/pending: boundary yang berhenti atau batas waktu absolut juga
-      // menandakan sesi membeku.
-      const boundaryStalled = hasBoundary && now - lastActivity > 12000;
-      const deadlineStalled = now > hardDeadline;
-      if (!isMobile && (boundaryStalled || deadlineStalled)) {
-        ended = true;
-        clearInterval(watch);
-        onerror && onerror({ error:'stalled' });
-        return;
-      }
-      if (!synth.speaking && !synth.pending) {
-        const limit = isMobile ? (started ? 2 : 6) : (started ? 12 : 24);
-        if (++idle >= limit) {
-          if (isMobile) done();
-          else {
-            ended = true;
-            clearInterval(watch);
-            onerror && onerror({ error:'stalled' });
-          }
-        }
-      } else idle = 0;
-    }, 500);
-    return u;
-  }
-
-  function renderReader(){
-    el.reader.innerHTML = ''; spans = [];
-    const emptyState = document.getElementById('reader-empty');
-    if (emptyState) emptyState.hidden = true;
-    let pos = 0;
-    queue.forEach((c, i) => {
-      if (c.start > pos) el.reader.appendChild(document.createTextNode(source.slice(pos, c.start)));
-      const s = document.createElement('span');
-      s.textContent = c.text;
-      s.title = 'Klik untuk membaca dari sini';
-      s.onclick = () => jumpTo(i);
-      el.reader.appendChild(s); spans.push(s);
-      pos = c.end;
+  function speechSnapshot(voice = playbackVoice, lang = playbackLang){
+    return Object.freeze({
+      voice,
+      lang:lang || voice?.lang || el.bahasa.value || 'en-US',
+      rate:+el.kecepatan.value,
+      pitch:+el.nada.value,
+      volume:+el.volume.value
     });
-    if (pos < source.length) el.reader.appendChild(document.createTextNode(source.slice(pos)));
-    el.reader.hidden = false;
   }
 
-  // Posisikan kalimat aktif di tengah area baca. Jika teks di bawahnya
-  // sudah habis, browser otomatis berhenti di batas akhir (tidak dipaksa).
-  function centerSpan(s){
-    if (!s) return;
-    // panel terbuka atau pengguna baru saja menggulir → jangan pindahkan layar
-    if (!el.panel.hidden || Date.now() - userScrollAt < 4000) return;
-    const r = el.reader;
-    const sr = s.getBoundingClientRect();
-    if (r.scrollHeight > r.clientHeight + 1) {
-      // area pembaca punya scroll sendiri
-      const rr = r.getBoundingClientRect();
-      const delta = (sr.top + sr.height / 2) - (rr.top + rr.height / 2);
-      r.scrollBy({ top: delta, behavior: 'smooth' });
-    } else {
-      // scroll halaman; abaikan area yang tertutup player jika menempel di atas
-      const pr = el.player.getBoundingClientRect();
-      const topEdge = pr.top <= 1 && pr.bottom > 0 ? pr.bottom : 0;
-      const mid = topEdge + (window.innerHeight - topEdge) / 2;
-      window.scrollBy({ top: (sr.top + sr.height / 2) - mid, behavior: 'smooth' });
-    }
+  function say(text, onend, onerror, snapshot = speechSnapshot()){
+    speechCancelled = false;
+    return speechService.speak(text, snapshot, onend, onerror);
   }
 
   function jumpTo(i){
     token++; cancelSpeech();
-    idx = i; setState('playing');
+    idx = i;
+    playerController.skip({ index:idx, queueLength:queue.length });
     // Android Chrome sering membuang speak() yang dipanggil tepat setelah
     // cancel(); beri jeda singkat agar suara benar-benar keluar.
     const myToken = token;
@@ -775,8 +535,8 @@ import { createTranslationService } from './tts/js/services/translation-service.
   function next(myToken){
     if (myToken !== token) return;
     if (idx >= queue.length){ finish('Selesai dibacakan.', true); return; }
-    spans.forEach((s, i) => { s.className = i < idx ? 'done' : i === idx ? 'now' : ''; });
-    centerSpan(spans[idx]);
+    readerController.mark(idx);
+    readerController.center(idx);
     el.pLabel.textContent = 'Membacakan…';
     setProgress(idx);
     remaining = estimateFrom(idx); showTime();
@@ -818,23 +578,48 @@ import { createTranslationService } from './tts/js/services/translation-service.
     token++; cancelSpeech();
     translationService.cancel();
     appState.transitionTranslation('idle', { progress:0 });
-    if (completed){ spans.forEach(s => s.className = 'done'); el.pBar.style.width = '100%'; }
-    else { spans.forEach(s => s.className = ''); el.pBar.style.width = '0%'; }
+    if (completed){ readerController.complete(); el.pBar.style.width = '100%'; }
+    else { readerController.clear(); el.pBar.style.width = '0%'; }
     idx = 0;
     el.pCount.textContent = '';
     remaining = 0; el.pTime.textContent = completed ? '00:00' : '--:--';
     el.pLabel.textContent = completed ? 'Selesai' : 'Siap diputar';
     el.status.textContent = msg;
-    setState('idle');
+    playerController.stop(msg);
+  }
+
+  function cancelActiveSession(message = ''){
+    const translationStatus = appState.getSnapshot().translation.status;
+    if (state === 'idle' && translationStatus !== 'loading') return false;
+    token++;
+    cancelSpeech();
+    translationService.cancel();
+    appState.transitionTranslation('cancelled', { progress:0, sessionId:token });
+    setTranslationProgress('hidden');
+    queue = [];
+    idx = 0;
+    remaining = 0;
+    el.pCount.textContent = '';
+    el.pTime.textContent = '--:--';
+    el.pBar.style.width = '0%';
+    el.pLabel.textContent = 'Siap diputar';
+    playerController.stop(message);
+    if (message) el.status.textContent = message;
+    return true;
   }
 
   async function start(){
     const original = el.teks.value.replace(/\r/g, '');
     if (!original.trim()){ el.status.textContent = 'Isi teks dulu sebelum memutar.'; el.teks.focus(); return; }
+    if (state !== 'idle') return;
     // Mode baca menjadi prioritas utama. Deteksi ulang bahasa sumber sebelum
     // mengambil suara agar pilihan Indonesia yang tertinggal dari mode
     // terjemahan versi lama tidak dipakai untuk teks original berbahasa lain.
     applyDetectedLanguage();
+    // PlayerController memiliki lifecycle sesi UI. Token lokal hanya menjaga
+    // callback utterance/timer lama agar tidak dapat memajukan antrean baru.
+    const startToken = ++token;
+    const playerSession = playerController.prepare();
     source = original;
     playbackVoice = voices.find(x => x.name === el.suara.value) || null;
     playbackLang = el.bahasa.value || playbackVoice?.lang || 'en-US';
@@ -842,11 +627,13 @@ import { createTranslationService } from './tts/js/services/translation-service.
       el.status.textContent = '';
       setTranslationProgress('loading', 0);
       appState.transitionTranslation('loading', { progress:0 });
-      el.putar.disabled = true;
       try {
-        source = await translateToIndonesian(original, percent => {
+        const translated = await translateToIndonesian(original, percent => {
+          if (startToken !== token) return;
           setTranslationProgress('loading', percent);
         });
+        if (startToken !== token || !playerController.isCurrent(playerSession)) return;
+        source = translated;
         playbackVoice = voices.find(v => normalizeLocale(v.lang).startsWith('id') && /google/i.test(v.name))
           || voices.find(v => normalizeLocale(v.lang).startsWith('id'))
           || null;
@@ -856,23 +643,23 @@ import { createTranslationService } from './tts/js/services/translation-service.
         appState.transitionTranslation('done', { progress:100 });
         el.status.textContent = 'Bahasa Indonesia · ' + outputVoice;
       } catch (error) {
-        if (error.code === 'ABORTED') return;
+        if (error.code === 'ABORTED' || startToken !== token || !playerController.isCurrent(playerSession)) return;
         setTranslationProgress('error', 0);
         appState.transitionTranslation('error', { progress:0 });
         el.status.textContent = 'Terjemahan gagal: ' + error.message + '. Silakan pilih teks original atau coba lagi.';
+        playerController.stop('Terjemahan gagal.');
         return;
-      } finally {
-        el.putar.disabled = false;
       }
     } else {
       setTranslationProgress('hidden');
     }
-    token++;
+    if (startToken !== token || !playerController.isCurrent(playerSession)) return;
     if (!speechCancelled && (synth.speaking || synth.pending)) cancelSpeech();
-    queue = chunk(source); idx = 0; stalledRetries = 0;
-    renderReader(); setState('playing');
-    addHistory(original.trim());
-    next(token);
+    queue = chunkText(source); idx = 0; stalledRetries = 0;
+    readerController.render(source, queue);
+    playerController.play({ index:idx, queueLength:queue.length });
+    historyController.add(original.trim());
+    next(startToken);
   }
 
   // Catatan: synth.pause()/resume() tidak andal di mobile (Android Chrome sering
@@ -880,12 +667,13 @@ import { createTranslationService } from './tts/js/services/translation-service.
   // hentikan ucapan, lanjut = ucapkan ulang kalimat yang sedang aktif.
   function pause(){
     token++; cancelSpeech();
-    setState('paused');
+    playerController.pause({ index:idx, queueLength:queue.length });
     setProgress(idx);
     remaining = estimateFrom(idx); showTime();
   }
   function resume(){
     el.pLabel.textContent = 'Membacakan…';
+    playerController.resume({ index:idx, queueLength:queue.length });
     jumpTo(idx);
   }
 
@@ -895,7 +683,10 @@ import { createTranslationService } from './tts/js/services/translation-service.
     start();
   };
 
-  el.berhenti.onclick = () => finish('Dihentikan.');
+  el.berhenti.onclick = () => {
+    if (state === 'preparing') cancelActiveSession('Dihentikan.');
+    else finish('Dihentikan.');
+  };
 
   document.addEventListener('keydown', e => {
     if ((e.ctrlKey || e.metaKey) && e.key === 'Enter'){ e.preventDefault(); el.putar.click(); }
@@ -908,7 +699,9 @@ import { createTranslationService } from './tts/js/services/translation-service.
   el.uji.onclick = () => {
     cancelSpeech();
     el.status.textContent = 'Menguji suara…';
-    say('Halo, ini contoh suara yang dipilih.', () => { el.status.textContent = ''; });
+    const selected = voiceService.snapshot(el.suara.value, el.bahasa.value);
+    const snapshot = speechSnapshot(selected.voice, selected.lang);
+    say('Halo, ini contoh suara yang dipilih.', () => { el.status.textContent = ''; }, () => { el.status.textContent = 'Uji suara gagal.'; }, snapshot);
   };
 
   window.addEventListener('beforeunload', cancelSpeech);
@@ -924,12 +717,7 @@ import { createTranslationService } from './tts/js/services/translation-service.
   el.bersih.onclick = () => { el.teks.value = ''; updateCount(); el.teks.focus(); };
 
   /* ---------- riwayat ---------- */
-  let history = store.get('tts:riwayat', []);
-  function addHistory(text){
-    history = [text, ...history.filter(h => h !== text)].slice(0, 8);
-    store.set('tts:riwayat', history); renderHistory();
-  }
-  function renderHistory(){
+  function renderHistory(history){
     el.riwayat.innerHTML = '';
     if (!history.length){
       const li = document.createElement('li');
@@ -945,10 +733,13 @@ import { createTranslationService } from './tts/js/services/translation-service.
       const d = document.createElement('button');
       d.className = 'small'; d.type = 'button'; d.textContent = 'Hapus';
       d.setAttribute('aria-label', 'Hapus dari riwayat');
-      d.onclick = () => { history.splice(i, 1); store.set('tts:riwayat', history); renderHistory(); };
+      d.onclick = () => historyController.remove(i);
       li.append(b, d); el.riwayat.appendChild(li);
     });
   }
-  renderHistory();
+  const historyController = createHistoryController({ storage, onChange:renderHistory });
+  historyController.render();
   setState('idle');
-})();
+}
+
+bootTtsApp();

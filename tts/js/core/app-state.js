@@ -1,5 +1,5 @@
-const PLAYER_STATES = new Set(['idle', 'playing', 'paused']);
-const TRANSLATION_STATES = new Set(['idle', 'loading', 'done', 'error']);
+const PLAYER_STATES = new Set(['idle', 'preparing', 'playing', 'paused']);
+const TRANSLATION_STATES = new Set(['idle', 'loading', 'done', 'error', 'cancelled']);
 
 const initialState = Object.freeze({
   player: Object.freeze({ status: 'idle', sessionId: 0, index: 0, queueLength: 0 }),

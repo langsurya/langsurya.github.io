@@ -4,6 +4,7 @@ export const STORAGE_KEYS = Object.freeze({
   theme: 'tts:tema',
   appVersion: 'tts:app_version',
   language: 'tts:bahasa',
+  languagePreference: 'tts:bahasa_preference',
   voice: 'tts:suara',
   kecepatan: 'tts:kecepatan',
   nada: 'tts:nada',
