@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="description" content="Alat pembaca teks Langsurya untuk membacakan teks langsung dari browser.">
 <title>Pembaca Teks | Langsurya</title>
-<link rel="stylesheet" href="../styles.css?v=20261111-1058">
+<link rel="stylesheet" href="../styles.css?v=20261111-1108">
 </head>
 <body class="tts-page">
 <main>
@@ -59,30 +59,36 @@
     <div class="tts-toolbar">
       <div class="grid">
       <div class="select-field language-field">
+        <span class="compact-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M3.8 12h16.4M12 3.5c2.2 2.35 3.3 5.18 3.3 8.5S14.2 18.15 12 20.5M12 3.5C9.8 5.85 8.7 8.68 8.7 12s1.1 6.15 3.3 8.5"/></svg>
+        </span>
         <label for="bahasa">Bahasa teks</label>
         <select id="bahasa"></select>
       </div>
       <div class="select-field voice-field">
+        <span class="compact-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M5 10v4h3l4 3.3V6.7L8 10H5zM15.2 9a4 4 0 0 1 0 6M17.7 6.7a7.2 7.2 0 0 1 0 10.6"/></svg>
+        </span>
         <label for="suara">Pilihan suara</label>
         <select id="suara"></select>
       </div>
       <div class="read-mode-field">
-        <span class="field-label" id="mode-baca-label">Bacakan sebagai</span>
+        <span class="field-label" id="mode-baca-label">Bahasa bacaan</span>
         <div id="mode-baca" class="mode-switch" role="radiogroup" aria-labelledby="mode-baca-label">
           <label class="mode-option">
             <input id="mode-original" type="radio" name="mode-baca" value="original" checked>
-            <span>Teks asli</span>
+            <span><strong>Asli</strong></span>
           </label>
           <label class="mode-option">
             <input id="mode-id" type="radio" name="mode-baca" value="id">
-            <span>Bahasa Indonesia</span>
+            <span><strong>Terjemahkan</strong></span>
           </label>
         </div>
       </div>
       </div>
 
       <div id="translate-info" class="translate-info" hidden>
-        Teks akan diterjemahkan ke bahasa Indonesia sebelum dibacakan. Bahasa teks dan pilihan suara tetap mengikuti teks asli.
+        Diterjemahkan ke Bahasa Indonesia sebelum dibacakan.
       </div>
     </div>
 

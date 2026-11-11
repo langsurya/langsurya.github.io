@@ -291,8 +291,11 @@ input[type=range]::-moz-range-thumb{
 .tts-toolbar .grid label,.tts-toolbar .field-label{font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;font-weight:750}
 .tts-toolbar .grid select{height:36px;padding-left:0;border:0;background-color:transparent;font-weight:650}
 .tts-toolbar .mode-switch{border:0;background:var(--bg)}
+.tts-toolbar .mode-option strong{font:inherit;font-weight:700}
 .tts-toolbar select{cursor:pointer}
 .tts-toolbar .select-field{position:relative;min-width:0}
+.compact-icon{display:none}
+.compact-icon svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .tts-card .player{margin:0;padding:15px 20px;border:0;border-top:1px solid var(--line);border-radius:0;background:var(--panel)}
 .tts-card .p-track{height:7px}
 .tts-feedback{position:relative;padding:0 22px 14px;background:var(--panel)}
@@ -331,20 +334,25 @@ input[type=range]::-moz-range-thumb{
   .tts-source-pane textarea{min-height:180px;max-height:46vh;resize:vertical;padding:13px;font-size:.92rem}
   .source-actions{margin-top:9px}
   .source-actions .small{min-height:38px;padding:7px 11px;font-size:.8rem}
-  .reader-empty{min-height:170px;padding:22px 16px}
+  .reader-empty{min-height:150px;padding:18px 16px}
   .reader-empty-icon{width:46px;height:46px;border-radius:14px}
-  .tts-output-pane .reader{min-height:170px;max-height:280px;padding:14px;font-size:.91rem;line-height:1.7}
-  .tts-toolbar{padding:12px 14px}
-  .tts-toolbar .grid{display:grid;grid-template-columns:minmax(0,1fr);gap:8px}
+  .tts-output-pane .reader{min-height:150px;max-height:260px;padding:14px;font-size:.91rem;line-height:1.7}
+  .tts-toolbar{padding:8px 12px}
+  .tts-toolbar .grid{display:grid;grid-template-columns:44px 44px minmax(0,1fr);align-items:center;gap:7px}
   .tts-toolbar .grid>div,
   .tts-toolbar .grid>div:nth-child(2),
-  .tts-toolbar .grid>div:nth-child(3){grid-column:1;grid-row:auto;min-width:0;padding:9px 11px;border-radius:11px}
-  .tts-toolbar .grid label,.tts-toolbar .field-label{margin:0 0 2px;font-size:.62rem;letter-spacing:.08em}
-  .tts-toolbar .grid select{height:32px;width:100%;min-width:0;padding:2px 28px 2px 0;font-size:.84rem;font-weight:650;white-space:nowrap;text-overflow:ellipsis}
-  .tts-toolbar .mode-switch{height:36px;margin-top:4px;padding:3px}
-  .tts-toolbar .mode-option span{height:28px;font-size:.72rem;padding:0 7px}
-  .translate-info{margin-top:8px;padding:7px 9px;font-size:.72rem;line-height:1.45}
-  .tts-card .player{padding:12px}
+  .tts-toolbar .grid>div:nth-child(3){grid-column:auto;grid-row:1;min-width:0;border-radius:11px}
+  .tts-toolbar .select-field{width:44px;height:44px;padding:0;display:grid;place-items:center;color:var(--accent);overflow:hidden}
+  .tts-toolbar .select-field:hover,.tts-toolbar .select-field:focus-within{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 9%,var(--panel))}
+  .tts-toolbar .select-field .compact-icon{display:grid;place-items:center;pointer-events:none}
+  .tts-toolbar .select-field label{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
+  .tts-toolbar .select-field select{position:absolute;inset:0;width:100%;height:100%;padding:0;border:0;opacity:0;cursor:pointer}
+  .tts-toolbar .read-mode-field{padding:5px 6px!important}
+  .tts-toolbar .read-mode-field>.field-label{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
+  .tts-toolbar .mode-switch{height:32px;margin:0;padding:2px;border-radius:9px}
+  .tts-toolbar .mode-option span{height:28px;font-size:.72rem;padding:0 8px;border-radius:7px;white-space:nowrap}
+  .translate-info{margin:6px 0 0;padding:5px 8px;border:0;border-radius:8px;background:color-mix(in srgb,var(--accent) 8%,transparent);font-size:.68rem;line-height:1.35;text-align:center}
+  .tts-card .player{padding:9px 12px 11px}
   .tts-feedback{padding:0 16px 13px}
   .app-version{position:static;padding-top:8px;font-size:.65rem}
   .history-heading{align-items:flex-start}
