@@ -1,4 +1,4 @@
-export const APP_VERSION = 'web-v2026.11.11-1123';
+export const APP_VERSION = 'web-v2026.11.11-1830';
 
 export const STORAGE_KEYS = Object.freeze({
   theme: 'tts:tema',
