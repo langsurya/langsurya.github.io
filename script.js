@@ -733,6 +733,8 @@
 
   function renderReader(){
     el.reader.innerHTML = ''; spans = [];
+    const emptyState = document.getElementById('reader-empty');
+    if (emptyState) emptyState.hidden = true;
     let pos = 0;
     queue.forEach((c, i) => {
       if (c.start > pos) el.reader.appendChild(document.createTextNode(source.slice(pos, c.start)));

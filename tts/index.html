@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="description" content="Alat pembaca teks Langsurya untuk membacakan teks langsung dari browser.">
 <title>Pembaca Teks | Langsurya</title>
-<link rel="stylesheet" href="../styles.css?v=20261110-1520">
+<link rel="stylesheet" href="../styles.css?v=20261111-1058">
 </head>
-<body>
+<body class="tts-page">
 <main>
   <nav class="tts-nav" aria-label="Navigasi halaman">
     <a href="../">← Kembali ke beranda Langsurya</a>
@@ -20,44 +20,70 @@
     <button id="tema" class="small" type="button" aria-label="Ganti tema">Tema</button>
   </header>
 
-  <section class="card">
-    <label for="teks">Teks yang akan dibacakan</label>
-    <textarea id="teks" placeholder="Tulis atau tempel teks di sini..."></textarea>
-    <div class="meta">
-      <span id="hitung">0 karakter · 0 kata</span>
-      <span>
-        <button id="muat" class="small" type="button">Buka file .txt</button>
-        <button id="bersih" class="small" type="button">Kosongkan</button>
-        <input id="berkas" type="file" accept=".txt,text/plain" hidden>
-      </span>
+  <section class="card tts-card">
+    <div class="tts-workspace">
+      <div class="tts-source-pane">
+        <div class="pane-heading">
+          <div>
+            <span class="pane-kicker">TEKS</span>
+            <h2>Tulis teks</h2>
+          </div>
+          <span id="hitung" class="count-badge">0 karakter · 0 kata</span>
+        </div>
+        <label class="sr-only" for="teks">Teks untuk dibacakan</label>
+        <textarea id="teks" placeholder="Tulis atau tempel teks yang ingin didengarkan..."></textarea>
+        <div class="source-actions">
+          <button id="muat" class="small" type="button">＋ Buka .txt</button>
+          <button id="bersih" class="small subtle-danger" type="button">Kosongkan</button>
+          <input id="berkas" type="file" accept=".txt,text/plain" hidden>
+        </div>
+      </div>
+
+      <aside class="tts-output-pane" aria-labelledby="output-title">
+        <div class="pane-heading">
+          <div>
+            <span class="pane-kicker">PRATINJAU</span>
+            <h2 id="output-title">Pratinjau bacaan</h2>
+          </div>
+          <span class="live-badge"><i aria-hidden="true"></i> Aktif</span>
+        </div>
+        <div id="reader-empty" class="reader-empty">
+          <div class="reader-empty-icon" aria-hidden="true">Aa</div>
+          <strong>Pratinjau akan muncul di sini</strong>
+          <span>Atur bahasa dan suara, lalu tekan Putar.</span>
+        </div>
+        <div id="reader" class="reader" hidden aria-label="Teks yang sedang dibacakan"></div>
+      </aside>
     </div>
 
-    <div class="grid">
-      <div>
-        <label for="bahasa">Bahasa sumber</label>
+    <div class="tts-toolbar">
+      <div class="grid">
+      <div class="select-field language-field">
+        <label for="bahasa">Bahasa teks</label>
         <select id="bahasa"></select>
       </div>
-      <div>
-        <label for="suara">Suara original</label>
+      <div class="select-field voice-field">
+        <label for="suara">Pilihan suara</label>
         <select id="suara"></select>
       </div>
       <div class="read-mode-field">
-        <span class="field-label" id="mode-baca-label">Teks yang dibacakan</span>
+        <span class="field-label" id="mode-baca-label">Bacakan sebagai</span>
         <div id="mode-baca" class="mode-switch" role="radiogroup" aria-labelledby="mode-baca-label">
           <label class="mode-option">
             <input id="mode-original" type="radio" name="mode-baca" value="original" checked>
-            <span>Original</span>
+            <span>Teks asli</span>
           </label>
           <label class="mode-option">
             <input id="mode-id" type="radio" name="mode-baca" value="id">
-            <span>Terjemahkan</span>
+            <span>Bahasa Indonesia</span>
           </label>
         </div>
       </div>
-    </div>
+      </div>
 
-    <div id="translate-info" class="translate-info" hidden>
-      Teks akan diterjemahkan dan dibacakan dalam bahasa Indonesia. Pilihan Bahasa sumber dan Suara original di atas tetap menunjukkan bahasa teks asli.
+      <div id="translate-info" class="translate-info" hidden>
+        Teks akan diterjemahkan ke bahasa Indonesia sebelum dibacakan. Bahasa teks dan pilihan suara tetap mengikuti teks asli.
+      </div>
     </div>
 
     <div id="panel" class="controls" role="dialog" aria-label="Pengaturan suara" hidden>
@@ -150,14 +176,18 @@
       <button id="atur" class="ghost-btn" type="button" aria-expanded="false" aria-controls="panel" title="Kecepatan, nada, volume">⚙ <span id="atur-info">1× · 100%</span></button>
     </div>
 
-    <div id="status" class="status" role="status" aria-live="polite"></div>
-    <div id="app-version" class="small" aria-live="polite">Versi web: memuat…</div>
-    <div id="notice" class="notice" hidden></div>
-    <div id="reader" class="reader" hidden aria-label="Teks yang sedang dibacakan"></div>
+    <div class="tts-feedback">
+      <div id="status" class="status" role="status" aria-live="polite"></div>
+      <div id="notice" class="notice" hidden></div>
+      <div id="app-version" class="app-version" aria-live="polite">Versi web: memuat…</div>
+    </div>
   </section>
 
   <section class="card history">
-    <h2>Riwayat teks</h2>
+    <div class="history-heading">
+      <div><span class="pane-kicker">TERAKHIR DIPUTAR</span><h2>Riwayat bacaan</h2></div>
+      <span class="history-hint">Klik teks untuk memuat kembali</span>
+    </div>
     <ul id="riwayat"></ul>
   </section>
 </main>
