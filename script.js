@@ -10,8 +10,19 @@
     status:$('status'), notice:$('notice'), reader:$('reader'), riwayat:$('riwayat'),
     muat:$('muat'), berkas:$('berkas'), bersih:$('bersih'), tema:$('tema'),
     panel:$('panel'), atur:$('atur'), aturInfo:$('atur-info'), tutup:$('tutup'),
-    modeBaca:$('mode-baca'), translateInfo:$('translate-info')
+    modeBaca:$('mode-baca'), translateInfo:$('translate-info'),
+    translateProgress:$('translate-progress'), translateProgressText:$('translate-progress-text'),
+    translateProgressValue:$('translate-progress-value'), translateProgressBar:$('translate-progress-bar')
   };
+
+  function setTranslationProgress(state, percent = 0){
+    const value = Math.max(0, Math.min(100, Math.round(percent)));
+    el.translateProgress.hidden = state === 'hidden';
+    el.translateProgress.dataset.state = state;
+    el.translateProgressText.textContent = state === 'done' ? 'Terjemahan siap' : state === 'error' ? 'Terjemahan gagal' : 'Menerjemahkan';
+    el.translateProgressValue.textContent = state === 'error' ? '!' : value + '%';
+    el.translateProgressBar.style.width = value + '%';
+  }
 
   /* ---------- panel pengaturan (buka/tutup) ---------- */
   function togglePanel(open){
@@ -845,24 +856,29 @@
     playbackVoice = voices.find(x => x.name === el.suara.value) || null;
     playbackLang = el.bahasa.value || playbackVoice?.lang || 'en-US';
     if (readMode() === 'id') {
-      el.status.textContent = 'Menerjemahkan teks ke bahasa Indonesia… 0%';
+      el.status.textContent = '';
+      setTranslationProgress('loading', 0);
       el.putar.disabled = true;
       try {
         source = await translateToIndonesian(original, percent => {
-          el.status.textContent = 'Menerjemahkan teks ke bahasa Indonesia… ' + percent + '%';
+          setTranslationProgress('loading', percent);
         });
         playbackVoice = voices.find(v => normalizeLocale(v.lang).startsWith('id') && /google/i.test(v.name))
           || voices.find(v => normalizeLocale(v.lang).startsWith('id'))
           || null;
         playbackLang = playbackVoice?.lang || 'id-ID';
         const outputVoice = playbackVoice?.name || 'suara bawaan browser';
-        el.status.textContent = 'Terjemahan selesai. Hasil: Indonesia · Suara: ' + outputVoice + '.';
+        setTranslationProgress('done', 100);
+        el.status.textContent = 'Bahasa Indonesia · ' + outputVoice;
       } catch (error) {
+        setTranslationProgress('error', 0);
         el.status.textContent = 'Terjemahan gagal: ' + error.message + '. Silakan pilih teks original atau coba lagi.';
         return;
       } finally {
         el.putar.disabled = false;
       }
+    } else {
+      setTranslationProgress('hidden');
     }
     token++;
     if (!speechCancelled && (synth.speaking || synth.pending)) cancelSpeech();

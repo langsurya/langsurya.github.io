@@ -90,6 +90,18 @@
       <div id="translate-info" class="translate-info" hidden>
         Diterjemahkan ke Bahasa Indonesia sebelum dibacakan.
       </div>
+      <div id="translate-progress" class="translate-progress" role="status" aria-live="polite" hidden>
+        <div class="translate-progress-head">
+          <span class="translate-progress-label">
+            <i aria-hidden="true"></i>
+            <span id="translate-progress-text">Menerjemahkan</span>
+          </span>
+          <strong id="translate-progress-value">0%</strong>
+        </div>
+        <div class="translate-progress-track" aria-hidden="true">
+          <span id="translate-progress-bar"></span>
+        </div>
+      </div>
     </div>
 
     <div id="panel" class="controls" role="dialog" aria-label="Pengaturan suara" hidden>

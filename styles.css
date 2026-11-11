@@ -59,6 +59,23 @@ textarea:focus,select:focus,button:focus-visible,input:focus-visible{outline:3px
   background:color-mix(in srgb,var(--accent) 8%,var(--panel));color:var(--muted);font-size:.78rem;
 }
 .translate-info[hidden]{display:none}
+.translate-progress{
+  margin-top:8px;padding:10px 12px;border:1px solid color-mix(in srgb,var(--accent) 24%,var(--line));
+  border-radius:11px;background:color-mix(in srgb,var(--accent) 6%,var(--panel));
+}
+.translate-progress[hidden]{display:none}
+.translate-progress-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:7px;font-size:.76rem}
+.translate-progress-label{display:flex;align-items:center;gap:7px;color:var(--ink);font-weight:700}
+.translate-progress-label i{width:7px;height:7px;flex:none;border-radius:50%;background:var(--accent);box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 13%,transparent)}
+.translate-progress strong{color:var(--accent);font-size:.72rem;font-variant-numeric:tabular-nums}
+.translate-progress-track{height:5px;overflow:hidden;border-radius:999px;background:color-mix(in srgb,var(--accent) 14%,var(--line))}
+.translate-progress-track span{display:block;width:0;height:100%;border-radius:inherit;background:var(--accent);transition:width .25s ease}
+.translate-progress[data-state="loading"] .translate-progress-label i{animation:translate-pulse 1.2s ease-in-out infinite}
+.translate-progress[data-state="done"]{border-color:color-mix(in srgb,var(--accent) 36%,var(--line))}
+.translate-progress[data-state="error"]{border-color:color-mix(in srgb,var(--danger) 46%,var(--line));background:color-mix(in srgb,var(--danger) 7%,var(--panel))}
+.translate-progress[data-state="error"] .translate-progress-label,.translate-progress[data-state="error"] strong{color:var(--danger)}
+.translate-progress[data-state="error"] .translate-progress-label i{background:var(--danger);box-shadow:0 0 0 4px color-mix(in srgb,var(--danger) 13%,transparent)}
+@keyframes translate-pulse{50%{opacity:.45;transform:scale(.78)}}
 label{display:block;font-size:.9rem;font-weight:600;margin-bottom:6px}
 select{
   width:100%;padding:10px;border-radius:8px;border:1px solid var(--line);
@@ -210,6 +227,7 @@ input[type=range]::-moz-range-thumb{
 .chip.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
 
 @media (prefers-reduced-motion:reduce){.reader span{transition:none}}
+@media (prefers-reduced-motion:reduce){.translate-progress-label i{animation:none!important}.translate-progress-track span{transition:none}}
 
 @media (max-width:600px){
   body{padding:16px 12px calc(28px + env(safe-area-inset-bottom))}
@@ -352,6 +370,10 @@ input[type=range]::-moz-range-thumb{
   .tts-toolbar .mode-switch{height:32px;margin:0;padding:2px;border-radius:9px}
   .tts-toolbar .mode-option span{height:28px;font-size:.72rem;padding:0 8px;border-radius:7px;white-space:nowrap}
   .translate-info{margin:6px 0 0;padding:5px 8px;border:0;border-radius:8px;background:color-mix(in srgb,var(--accent) 8%,transparent);font-size:.68rem;line-height:1.35;text-align:center}
+  .translate-progress{margin-top:6px;padding:8px 10px;border-radius:9px}
+  .translate-progress-head{margin-bottom:6px;font-size:.7rem}
+  .translate-progress strong{font-size:.68rem}
+  .translate-progress-track{height:4px}
   .tts-card .player{padding:9px 12px 11px}
   .tts-feedback{padding:0 16px 13px}
   .app-version{position:static;padding-top:8px;font-size:.65rem}
