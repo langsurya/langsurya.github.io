@@ -401,30 +401,48 @@
     return String(text).replace(/(\p{L})\s*-\s*(?=\p{L})/gu, '$1-');
   }
 
-  async function translateToIndonesian(text){
+  async function translateToIndonesian(text, onProgress){
     const sourceLang = (el.bahasa.value || 'en').split('-')[0].toLowerCase();
-    if (sourceLang === 'id') return text;
+    if (sourceLang === 'id') {
+      onProgress?.(100);
+      return text;
+    }
     const translated = [];
-    for (const part of translationParts(text)) {
-      const params = new URLSearchParams({ q: part, langpair: sourceLang + '|id' });
+    const parts = translationParts(text);
+    for (let index = 0; index < parts.length; index++) {
+      const part = parts[index];
+      const leadingWhitespace = part.match(/^\s*/)?.[0] || '';
+      const trailingWhitespace = part.match(/\s*$/)?.[0] || '';
+      const contentEnd = part.length - trailingWhitespace.length;
+      const content = part.slice(leadingWhitespace.length, contentEnd);
+
+      if (!content) {
+        translated.push(part);
+        onProgress?.(Math.round(((index + 1) / parts.length) * 100));
+        continue;
+      }
+
+      const params = new URLSearchParams({ q: content, langpair: sourceLang + '|id' });
       const response = await fetch('https://api.mymemory.translated.net/get?' + params);
       if (response.ok) {
         const data = await response.json();
         if (data.responseStatus === 200 && data.responseData?.translatedText) {
-          translated.push(normalizeTranslatedHyphens(data.responseData.translatedText));
+          translated.push(leadingWhitespace + normalizeTranslatedHyphens(data.responseData.translatedText) + trailingWhitespace);
+          onProgress?.(Math.round(((index + 1) / parts.length) * 100));
           continue;
         }
       }
 
       const fallbackParams = new URLSearchParams({
-        client:'gtx', sl:sourceLang, tl:'id', dt:'t', q:part
+        client:'gtx', sl:sourceLang, tl:'id', dt:'t', q:content
       });
       const fallback = await fetch('https://translate.googleapis.com/translate_a/single?' + fallbackParams);
       if (!fallback.ok) throw new Error('layanan terjemahan sedang membatasi permintaan');
       const fallbackData = await fallback.json();
       const fallbackText = fallbackData?.[0]?.map(segment => segment?.[0] || '').join('');
       if (!fallbackText) throw new Error('terjemahan tidak tersedia');
-      translated.push(normalizeTranslatedHyphens(fallbackText));
+      translated.push(leadingWhitespace + normalizeTranslatedHyphens(fallbackText) + trailingWhitespace);
+      onProgress?.(Math.round(((index + 1) / parts.length) * 100));
     }
     return translated.join('');
   }
@@ -825,10 +843,12 @@
     playbackVoice = voices.find(x => x.name === el.suara.value) || null;
     playbackLang = el.bahasa.value || playbackVoice?.lang || 'en-US';
     if (readMode() === 'id') {
-      el.status.textContent = 'Menerjemahkan teks ke bahasa Indonesia…';
+      el.status.textContent = 'Menerjemahkan teks ke bahasa Indonesia… 0%';
       el.putar.disabled = true;
       try {
-        source = await translateToIndonesian(original);
+        source = await translateToIndonesian(original, percent => {
+          el.status.textContent = 'Menerjemahkan teks ke bahasa Indonesia… ' + percent + '%';
+        });
         playbackVoice = voices.find(v => normalizeLocale(v.lang).startsWith('id') && /google/i.test(v.name))
           || voices.find(v => normalizeLocale(v.lang).startsWith('id'))
           || null;
