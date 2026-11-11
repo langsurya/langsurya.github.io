@@ -1,4 +1,6 @@
-import { MAX_HISTORY_ITEMS, SETTING_LIMITS, STORAGE_KEYS } from '../config/constants.js';
+const VERSION_QUERY = new URL(import.meta.url).search;
+const { MAX_HISTORY_ITEMS, SETTING_LIMITS, STORAGE_KEYS } =
+  await import('../config/constants.js' + VERSION_QUERY);
 
 const isString = value => typeof value === 'string';
 

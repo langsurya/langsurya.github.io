@@ -1,14 +1,33 @@
-import { APP_VERSION } from './tts/js/config/constants.js';
-import { createAppState } from './tts/js/core/app-state.js';
-import { createStorageService } from './tts/js/services/storage-service.js';
-import { createTranslationService } from './tts/js/services/translation-service.js';
-import { createSpeechService } from './tts/js/services/speech-service.js';
-import { createVoiceService, normalizeLocale } from './tts/js/services/voice-service.js';
-import { createWakeLockService } from './tts/js/services/wake-lock-service.js';
-import { chunkText, createReaderController } from './tts/js/controllers/reader-controller.js';
-import { createPlayerController } from './tts/js/controllers/player-controller.js';
-import { createSettingsController } from './tts/js/controllers/settings-controller.js';
-import { createHistoryController } from './tts/js/controllers/history-controller.js';
+// Versi cukup ditulis sekali pada URL script di tts/index.html. Query yang sama
+// diteruskan ke seluruh dependency agar refresh mengambil satu set modul baru.
+const VERSION_QUERY = new URL(import.meta.url).search;
+const withVersion = path => path + VERSION_QUERY;
+
+const [
+  { APP_VERSION },
+  { createAppState },
+  { createStorageService },
+  { createTranslationService },
+  { createSpeechService },
+  { createVoiceService, normalizeLocale },
+  { createWakeLockService },
+  { chunkText, createReaderController },
+  { createPlayerController },
+  { createSettingsController },
+  { createHistoryController }
+] = await Promise.all([
+  import(withVersion('./tts/js/config/constants.js')),
+  import(withVersion('./tts/js/core/app-state.js')),
+  import(withVersion('./tts/js/services/storage-service.js')),
+  import(withVersion('./tts/js/services/translation-service.js')),
+  import(withVersion('./tts/js/services/speech-service.js')),
+  import(withVersion('./tts/js/services/voice-service.js')),
+  import(withVersion('./tts/js/services/wake-lock-service.js')),
+  import(withVersion('./tts/js/controllers/reader-controller.js')),
+  import(withVersion('./tts/js/controllers/player-controller.js')),
+  import(withVersion('./tts/js/controllers/settings-controller.js')),
+  import(withVersion('./tts/js/controllers/history-controller.js'))
+]);
 
 function bootTtsApp() {
   const $ = id => document.getElementById(id);

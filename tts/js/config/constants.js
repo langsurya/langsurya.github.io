@@ -1,4 +1,9 @@
-export const APP_VERSION = 'web-v2026.11.11-1830';
+const releaseId = new URL(import.meta.url).searchParams.get('v') || 'dev';
+const releaseMatch = /^(\d{4})(\d{2})(\d{2})-(\d+)$/.exec(releaseId);
+
+export const APP_VERSION = releaseMatch
+  ? `web-v${releaseMatch[1]}.${releaseMatch[2]}.${releaseMatch[3]}-${releaseMatch[4]}`
+  : `web-${releaseId}`;
 
 export const STORAGE_KEYS = Object.freeze({
   theme: 'tts:tema',
