@@ -2,6 +2,10 @@
 // diteruskan ke seluruh dependency agar refresh mengambil satu set modul baru.
 const VERSION_QUERY = new URL(import.meta.url).search;
 const withVersion = path => path + VERSION_QUERY;
+// Berbeda dari import(), fetch() menyelesaikan path relatif terhadap URL halaman.
+// Karena halaman berada di /tts/, "./tts/..." sebelumnya menjadi /tts/tts/...
+// dan menghasilkan 404. Paksa aset diselesaikan relatif terhadap modul ini.
+const moduleAssetUrl = path => new URL(withVersion(path), import.meta.url);
 
 const [
   { APP_VERSION },
@@ -9,6 +13,7 @@ const [
   { createStorageService },
   { createTranslationService },
   { createSpeechService },
+  acronymPronunciations,
   { createVoiceService, detectLanguageByText, normalizeLocale },
   { createWakeLockService },
   { chunkText, createReaderController },
@@ -21,6 +26,18 @@ const [
   import(withVersion('./tts/js/services/storage-service.js')),
   import(withVersion('./tts/js/services/translation-service.js')),
   import(withVersion('./tts/js/services/speech-service.js')),
+  Promise.all([
+    fetch(moduleAssetUrl('./tts/js/config/acronyms-id.json')),
+    fetch(moduleAssetUrl('./tts/js/config/acronyms-international.json'))
+  ]).then(async responses => {
+    if (responses.some(response => !response.ok)) {
+      throw new Error('Kamus akronim gagal dimuat.');
+    }
+    const [indonesian, international] = await Promise.all(
+      responses.map(response => response.json())
+    );
+    return Object.freeze({ ...international, ...indonesian });
+  }),
   import(withVersion('./tts/js/services/voice-service.js')),
   import(withVersion('./tts/js/services/wake-lock-service.js')),
   import(withVersion('./tts/js/controllers/reader-controller.js')),
@@ -622,7 +639,7 @@ function bootTtsApp() {
     if (s === 'playing' && wakeLockMessage) el.status.textContent = wakeLockMessage;
   }
   const playerController = createPlayerController({ appState, onStateChange:setState });
-  const speechService = createSpeechService({ synth, Utterance:SpeechSynthesisUtterance, matchMedia });
+  const speechService = createSpeechService({ synth, Utterance:SpeechSynthesisUtterance, matchMedia, acronymPronunciations });
   const readerController = createReaderController({
     reader:el.reader,
     empty:$('reader-empty'),

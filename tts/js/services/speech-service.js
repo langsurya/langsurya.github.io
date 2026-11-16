@@ -1,12 +1,36 @@
-export function normalizeTextForSpeech(text) {
+export function normalizeTextForSpeech(text, acronymPronunciations = {}, language = 'id-ID') {
+  const isIndonesian = /^id(?:-|$)/i.test(language);
+
   return String(text)
-    .replace(/\b[A-Z]{4,}\b/g, word => word.toLowerCase())
+    // Singkatan Latin yang umum lebih natural jika dibaca sebagai frasa.
+    .replace(/\be\.\s*g\.(?=\s|$)/gi, 'for example')
+    .replace(/\bi\.\s*e\.(?=\s|$)/gi, 'that is')
+    .replace(/\betc\.(?=\s|$)/gi, 'and so on')
+    // Kamus berisi ejaan fonetis Indonesia. Jangan menerapkannya ke suara
+    // Inggris karena TEM harus tetap dibaca oleh mesin Inggris sebagai T-E-M,
+    // bukan "ti i em". Kata kapital panjang tetap dinormalkan seperti semula.
+    .replace(/\b[A-Z][A-Z0-9]{1,}\b/g, word => {
+      if (isIndonesian && acronymPronunciations[word]) return acronymPronunciations[word];
+      return word.length >= 4 && !/\d/.test(word) ? word.toLowerCase() : word;
+    })
+    // Ubah struktur visual menjadi jeda yang dipahami Web Speech API.
+    .replace(/(^|\n)\s*[•▪◦‣*-]\s+/g, '$1')
+    .replace(/(^|\n)\s*(\d{1,2})[.)]\s+/g, '$1$2. ')
+    // Baris baru setelah titik dua atau tanda baca cukup menjadi jeda, tanpa
+    // menghasilkan gabungan janggal seperti ":.".
+    .replace(/([.!?:;])?\s*\n+\s*/g, (_, punctuation) => punctuation ? `${punctuation} ` : '. ')
+    .replace(/\(\s*/g, ', ')
+    .replace(/\s*\)/g, ', ')
     .replace(/\s+[—–-]+\s+/g, ', ')
     .replace(/\.{3,}/g, '…')
-    .replace(/\s*,\s*,+/g, ', ');
+    .replace(/\s*,\s*,+/g, ', ')
+    .replace(/,\s*([.!?;:])/g, '$1')
+    .replace(/\s*\.\s*\.+/g, '. ')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
 }
 
-export function createSpeechService({ synth, Utterance, matchMedia, setIntervalImpl = setInterval, clearIntervalImpl = clearInterval } = {}) {
+export function createSpeechService({ synth, Utterance, matchMedia, acronymPronunciations = {}, setIntervalImpl = setInterval, clearIntervalImpl = clearInterval } = {}) {
   let cancelled = false;
 
   function cancel() {
@@ -15,7 +39,8 @@ export function createSpeechService({ synth, Utterance, matchMedia, setIntervalI
   }
 
   function speak(text, options, onend, onerror) {
-    const clean = normalizeTextForSpeech(text).replace(/^[\s"'“”‘’«(\[]+/, '');
+    const language = options.voice?.lang || options.lang || 'en-US';
+    const clean = normalizeTextForSpeech(text, acronymPronunciations, language).replace(/^[\s"'“”‘’«(\[]+/, '');
     const mobile = matchMedia('(max-width: 600px)').matches;
     const utterance = new Utterance(mobile ? '\u00a0\u00a0' + clean : clean);
     if (options.voice) {

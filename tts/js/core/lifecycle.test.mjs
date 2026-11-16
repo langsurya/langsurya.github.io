@@ -4,6 +4,96 @@ import { createAppState } from './app-state.js';
 import { createTranslationLifecycle } from '../app.js';
 import { detectLanguageByText, shouldApplyDetectedLanguage, snapshotSelectedVoice } from '../services/voice-service.js';
 import { createWakeLockService } from '../services/wake-lock-service.js';
+import { normalizeTextForSpeech } from '../services/speech-service.js';
+import { chunkText } from '../controllers/reader-controller.js';
+
+const acronymPronunciations = {
+  BPJS:'be pe je es',
+  DPR:'de pe er',
+  SIM:'sim',
+  TNI:'te en i',
+  UNICEF:'unisef'
+};
+
+test('known Indonesian initialisms use natural letter pronunciation', () => {
+  assert.equal(
+    normalizeTextForSpeech('TNI bekerja sama dengan DPR dan BPJS.', acronymPronunciations),
+    'te en i bekerja sama dengan de pe er dan be pe je es.'
+  );
+});
+
+test('known word acronyms are pronounced as words', () => {
+  assert.equal(normalizeTextForSpeech('SIM dan UNICEF', acronymPronunciations), 'sim dan unisef');
+});
+
+test('unknown long uppercase words retain the natural lowercase fallback', () => {
+  assert.equal(normalizeTextForSpeech('INDONESIA maju'), 'indonesia maju');
+});
+
+test('English voices do not receive Indonesian phonetic acronym spellings', () => {
+  assert.equal(
+    normalizeTextForSpeech('The TEM process detects UAS activity.', { TEM:'ti i em' }, 'en-US'),
+    'The TEM process detects UAS activity.'
+  );
+});
+
+test('Indonesian voices still use dictionary pronunciation', () => {
+  assert.equal(
+    normalizeTextForSpeech('Proses TEM dimulai.', { TEM:'ti i em' }, 'id-ID'),
+    'Proses ti i em dimulai.'
+  );
+});
+
+test('English examples, parentheses, and numbered lists become natural pauses', () => {
+  assert.equal(
+    normalizeTextForSpeech(
+      'TEM relies on three steps:\n1. Anticipation (e.g., pre-flight checks).\n2. Recognition.',
+      {},
+      'en-US'
+    ),
+    'TEM relies on three steps: 1. Anticipation, for example, pre-flight checks. 2. Recognition.'
+  );
+});
+
+test('chunking keeps dotted abbreviations together for speech normalization', () => {
+  const source = 'Expecting threats (e.g., weather or pre-flight checks). Recognition follows.';
+  const chunks = chunkText(source);
+  assert.deepEqual(
+    chunks.map(item => item.text),
+    ['Expecting threats (e.g., weather or pre-flight checks). Recognition follows.']
+  );
+  assert.equal(
+    normalizeTextForSpeech(chunks[0].text, {}, 'en-US'),
+    'Expecting threats, for example, weather or pre-flight checks.'
+  );
+});
+
+test('chunking also preserves i.e. and similar initial abbreviations', () => {
+  const source = 'Use the safer option (i.e., stop the operation). Continue afterward.';
+  assert.deepEqual(
+    chunkText(source).map(item => item.text),
+    ['Use the safer option (i.e., stop the operation). Continue afterward.']
+  );
+});
+
+test('short sentences share one utterance to avoid artificial pauses', () => {
+  assert.deepEqual(
+    chunkText('First sentence. Second sentence. Third sentence.').map(item => item.text),
+    ['First sentence. Second sentence. Third sentence.']
+  );
+});
+
+test('decimal versions and titles are not treated as sentence endings', () => {
+  const source = 'Dr. Smith reviewed version 22.23.4. The result was 9.2 points.';
+  assert.deepEqual(chunkText(source).map(item => item.text), [source]);
+});
+
+test('long speech remains split near the configured safe limit', () => {
+  const source = `${'word '.repeat(45).trim()}. ${'next '.repeat(45).trim()}.`;
+  const chunks = chunkText(source, 180);
+  assert.ok(chunks.length > 1);
+  assert.ok(chunks.every(item => item.text.length <= 180));
+});
 
 test('manual language preference blocks detection', () => {
   assert.equal(shouldApplyDetectedLanguage('manual'), false);

@@ -1,24 +1,54 @@
 export function chunkText(text, max = 300) {
+  const source = String(text);
   const chunks = [];
+  // Pencarian batas kalimat sebelumnya memotong teks pada setiap titik.
+  // Akibatnya "e.g." menjadi chunk "e." dan "g.", sehingga normalisasi
+  // speech-service tidak pernah menerima singkatan lengkap. Lindungi titik
+  // pada rangkaian inisial tanpa mengubah panjang atau indeks teks asli.
+  const protectedDot = '\uE000';
+  const boundaryText = source
+    // Singkatan berinisial: e.g., i.e., U.S., Ph.D.
+    .replace(/(?:\b[A-Za-z]\.){2,}/g, abbreviation => abbreviation.replace(/\./g, protectedDot))
+    // Angka desimal dan versi: 9.2, 22.23.4
+    .replace(/(?<=\d)\.(?=\d)/g, protectedDot)
+    // Gelar/sapaan yang lazim bukan akhir kalimat.
+    .replace(/\b(?:Mr|Mrs|Ms|Dr|Prof|Sr|Jr|St|No)\.(?=\s+[A-Za-z])/gi, match =>
+      match.replace('.', protectedDot)
+    );
   const pattern = /[^.!?;:\n]+[.!?;:]*["'”’)\]]*/g;
   const whitespace = /\s/;
   let match;
-  while ((match = pattern.exec(text))) {
+  while ((match = pattern.exec(boundaryText))) {
     let start = match.index;
     let end = start + match[0].length;
-    while (start < end && whitespace.test(text[start])) start++;
-    while (end > start && whitespace.test(text[end - 1])) end--;
+    while (start < end && whitespace.test(source[start])) start++;
+    while (end > start && whitespace.test(source[end - 1])) end--;
     if (end <= start) continue;
     while (end - start > max) {
-      let cut = text.lastIndexOf(' ', start + max);
+      let cut = source.lastIndexOf(' ', start + max);
       if (cut <= start) cut = Math.min(end, start + max);
-      chunks.push({ start, end:cut, text:text.slice(start, cut) });
+      chunks.push({ start, end:cut, text:source.slice(start, cut) });
       start = cut;
-      while (start < end && whitespace.test(text[start])) start++;
+      while (start < end && whitespace.test(source[start])) start++;
     }
-    chunks.push({ start, end, text:text.slice(start, end) });
+    chunks.push({ start, end, text:source.slice(start, end) });
   }
-  return chunks;
+
+  // Satu utterance untuk setiap kalimat menambahkan jeda teknis antara
+  // onend dan synth.speak berikutnya, di luar jeda alami dari tanda titik.
+  // Gabungkan kalimat pendek sampai batas aman agar mesin suara sendiri yang
+  // mengatur intonasi titik, tetapi pertahankan potongan panjang maksimal.
+  const merged = [];
+  for (const chunk of chunks) {
+    const previous = merged[merged.length - 1];
+    if (previous && chunk.end - previous.start <= max) {
+      previous.end = chunk.end;
+      previous.text = source.slice(previous.start, previous.end);
+    } else {
+      merged.push({ ...chunk });
+    }
+  }
+  return merged;
 }
 
 export function createReaderController({ reader, empty, player, panel, windowRef = window, getLastUserScroll = () => 0, onSelect = () => {} }) {
