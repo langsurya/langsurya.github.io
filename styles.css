@@ -79,8 +79,24 @@ textarea:focus,select:focus,button:focus-visible,input:focus-visible{outline:3px
 @keyframes translate-pulse{50%{opacity:.45;transform:scale(.78)}}
 label{display:block;font-size:.9rem;font-weight:600;margin-bottom:6px}
 select{
-  width:100%;padding:10px;border-radius:8px;border:1px solid var(--line);
-  background:var(--panel);color:var(--ink);font:inherit;
+  width:100%;padding:10px 38px 10px 12px;border-radius:10px;border:1px solid var(--line);
+  background-color:var(--panel);color:var(--ink);font:inherit;color-scheme:dark;
+  cursor:pointer;transition:border-color .18s,background-color .18s,box-shadow .18s;
+}
+select:hover:not(:disabled){
+  border-color:color-mix(in srgb,var(--accent) 58%,var(--line));
+  background-color:color-mix(in srgb,var(--accent) 5%,var(--panel));
+}
+select:focus{
+  border-color:var(--accent);
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 18%,transparent);
+}
+select:disabled{opacity:.58;cursor:wait}
+select option{
+  background:var(--panel);color:var(--ink);font-weight:600;padding:9px 12px;
+}
+select option:checked{
+  background:var(--accent);color:var(--accent-ink);
 }
 .actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:20px}
 button{
@@ -304,13 +320,49 @@ input[type=range]::-moz-range-thumb{
 .tts-output-pane .reader{flex:1;margin:0;max-height:330px;min-height:250px;padding:18px;border-style:solid;border-color:color-mix(in srgb,var(--accent) 24%,var(--line));border-radius:14px;background:color-mix(in srgb,var(--panel) 82%,transparent);font-size:.96rem;line-height:1.85}
 .tts-toolbar{padding:18px 22px;border-top:1px solid var(--line);background:color-mix(in srgb,var(--bg) 38%,var(--panel))}
 .tts-toolbar .grid{margin:0;grid-template-columns:minmax(150px,.75fr) minmax(250px,1.35fr) minmax(175px,.82fr)}
-.tts-toolbar .grid>div{padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--panel)}
+.tts-toolbar .grid>div{padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--panel);transition:border-color .18s,background-color .18s,box-shadow .18s}
+.tts-toolbar .grid>div:has(select:hover){border-color:color-mix(in srgb,var(--accent) 55%,var(--line));background:color-mix(in srgb,var(--accent) 5%,var(--panel))}
+.tts-toolbar .grid>div:has(select:focus){border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 16%,transparent)}
 .tts-toolbar .grid label,.tts-toolbar .field-label{font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;font-weight:750}
-.tts-toolbar .grid select{height:36px;padding-left:0;border:0;background-color:transparent;font-weight:650}
+.tts-toolbar .grid select{height:36px;padding:4px 34px 4px 0;border:0;background-color:transparent;font-weight:700;box-shadow:none;outline:0}
 .tts-toolbar .mode-switch{border:0;background:var(--bg)}
 .tts-toolbar .mode-option strong{font:inherit;font-weight:700}
 .tts-toolbar select{cursor:pointer}
 .tts-toolbar .select-field{position:relative;min-width:0}
+.native-select-hidden{position:absolute!important;width:1px!important;height:1px!important;opacity:0!important;pointer-events:none!important}
+.modern-select{position:relative;min-width:0}
+.modern-select-trigger{
+  width:100%;height:42px;padding:4px 4px 4px 0;border:0;border-radius:9px;background:transparent;color:var(--ink);
+  display:flex;align-items:center;justify-content:space-between;gap:12px;text-align:left;box-shadow:none!important;outline:0!important;
+}
+.modern-select-value{display:flex;min-width:0;flex-direction:column;gap:2px}
+.modern-select-value strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.88rem;line-height:1.15}
+.modern-select-value small{color:var(--muted);font-size:.67rem;font-weight:550;line-height:1.1}
+.modern-select-chevron{width:8px;height:8px;flex:none;margin-right:5px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(45deg) translateY(-2px);transition:transform .2s,color .2s}
+.modern-select.open .modern-select-chevron{color:var(--accent);transform:rotate(225deg) translate(-2px,-2px)}
+.modern-select-panel{
+  position:absolute;z-index:80;left:-13px;right:-13px;bottom:calc(100% + 12px);padding:8px;
+  border:1px solid color-mix(in srgb,var(--accent) 23%,var(--line));border-radius:16px;
+  background:color-mix(in srgb,var(--panel) 97%,var(--bg));
+  box-shadow:0 18px 55px color-mix(in srgb,#000 38%,transparent),0 0 0 1px color-mix(in srgb,var(--ink) 4%,transparent);
+  transform-origin:bottom center;animation:select-pop .16s ease-out;
+}
+@keyframes select-pop{from{opacity:0;transform:translateY(7px) scale(.985)}to{opacity:1;transform:none}}
+.modern-select-search{display:flex;align-items:center;gap:8px;margin-bottom:7px;padding:0 11px;border:1px solid var(--line);border-radius:11px;background:color-mix(in srgb,var(--bg) 60%,var(--panel));color:var(--muted)}
+.modern-select-search:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 13%,transparent)}
+.modern-select-search input{width:100%;height:38px;padding:0;border:0;outline:0;background:transparent;color:var(--ink);font:inherit;font-size:.82rem}
+.modern-select-list{max-height:min(330px,48vh);overflow:auto;scrollbar-width:thin;overscroll-behavior:contain}
+.modern-select-option{width:100%;min-height:48px;padding:7px 10px;border:0;border-radius:10px;background:transparent;color:var(--ink);display:flex;align-items:center;justify-content:space-between;gap:10px;text-align:left;box-shadow:none!important}
+.modern-select-option:hover,.modern-select-option:focus-visible{outline:0;background:color-mix(in srgb,var(--accent) 10%,var(--panel));color:var(--ink)}
+.modern-select-option[aria-selected="true"]{background:color-mix(in srgb,var(--accent) 16%,var(--panel))}
+.option-main{display:flex;min-width:0;flex-direction:column;gap:3px}
+.option-main strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.82rem}
+.option-main small{color:var(--muted);font-size:.65rem;font-weight:550}
+.option-main small.online{color:var(--accent)}
+.option-check{flex:none;color:var(--accent);font-size:.9rem;opacity:0}
+.modern-select-option[aria-selected="true"] .option-check{opacity:1}
+.modern-select-empty{padding:20px 12px;text-align:center;color:var(--muted);font-size:.78rem}
+.tts-toolbar .grid>div:has(.modern-select.open){position:relative;z-index:70;border-color:var(--accent);background:color-mix(in srgb,var(--accent) 7%,var(--panel));box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 14%,transparent)}
 .compact-icon{display:none}
 .compact-icon svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .tts-card .player{margin:0;padding:15px 20px;border:0;border-top:1px solid var(--line);border-radius:0;background:var(--panel)}
@@ -364,6 +416,10 @@ input[type=range]::-moz-range-thumb{
   .tts-toolbar .select-field .compact-icon{display:grid;place-items:center;pointer-events:none}
   .tts-toolbar .select-field label{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
   .tts-toolbar .select-field select{position:absolute;inset:0;width:100%;height:100%;padding:0;border:0;opacity:0;cursor:pointer}
+  .tts-toolbar .select-field .modern-select{position:absolute;inset:0}
+  .tts-toolbar .select-field .modern-select-trigger{position:absolute;inset:0;width:100%;height:100%;padding:0;opacity:0}
+  .tts-toolbar .select-field .modern-select-panel{position:fixed;z-index:120;left:10px;right:10px;bottom:calc(12px + env(safe-area-inset-bottom));max-height:70vh;padding:10px;border-radius:18px;opacity:1}
+  .tts-toolbar .select-field .modern-select-list{max-height:calc(70vh - 70px)}
   .tts-toolbar .read-mode-field{padding:5px 6px!important}
   .tts-toolbar .read-mode-field>.field-label{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
   .tts-toolbar .mode-switch{height:32px;margin:0;padding:2px;border-radius:9px}

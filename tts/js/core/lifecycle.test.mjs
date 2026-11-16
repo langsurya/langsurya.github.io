@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createAppState } from './app-state.js';
 import { createTranslationLifecycle } from '../app.js';
-import { shouldApplyDetectedLanguage, snapshotSelectedVoice } from '../services/voice-service.js';
+import { detectLanguageByText, shouldApplyDetectedLanguage, snapshotSelectedVoice } from '../services/voice-service.js';
 import { createWakeLockService } from '../services/wake-lock-service.js';
 
 test('manual language preference blocks detection', () => {
@@ -10,9 +10,33 @@ test('manual language preference blocks detection', () => {
   assert.equal(shouldApplyDetectedLanguage('detected'), true);
 });
 
+test('Indonesian prose is detected as Indonesian', () => {
+  const text = 'Sebenarnya semua kegaduhan politik Indonesia hari ini tidak dimulai saat itu, karena masalah ini sudah ada lebih lama dan masih menjadi perhatian semua pihak.';
+  assert.equal(detectLanguageByText(text), 'id');
+});
+
+test('English prose is detected as English before Indonesian translation', () => {
+  const text = 'The government will provide more information about the program when the new policy is ready, and they will explain what people should do next.';
+  assert.equal(detectLanguageByText(text), 'en');
+});
+
+test('short English text remains eligible for provider auto detection', () => {
+  assert.equal(detectLanguageByText('Hello, how are you?'), null);
+});
+
 test('voice test snapshots the current selected voice', () => {
   const voices = [{ name:'A', lang:'en-US' }, { name:'B', lang:'id-ID' }];
   assert.deepEqual(snapshotSelectedVoice(voices, 'B', 'en-US'), { voice:voices[1], lang:'id-ID' });
+});
+
+test('changing a voice resolves the newly selected voice instead of the first voice', () => {
+  const voices = [
+    { name:'Microsoft Andika', lang:'id-ID' },
+    { name:'Google Bahasa Indonesia', lang:'id-ID' }
+  ];
+  const selected = snapshotSelectedVoice(voices, 'Google Bahasa Indonesia', 'id-ID');
+  assert.equal(selected.voice, voices[1]);
+  assert.equal(selected.lang, 'id-ID');
 });
 
 test('stale translation cannot transition to done', async () => {

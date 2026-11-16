@@ -9,7 +9,7 @@ const [
   { createStorageService },
   { createTranslationService },
   { createSpeechService },
-  { createVoiceService, normalizeLocale },
+  { createVoiceService, detectLanguageByText, normalizeLocale },
   { createWakeLockService },
   { chunkText, createReaderController },
   { createPlayerController },
@@ -43,6 +43,107 @@ function bootTtsApp() {
     modeBaca:$('mode-baca'), translateInfo:$('translate-info'),
     translateProgress:$('translate-progress'), translateProgressText:$('translate-progress-text'),
     translateProgressValue:$('translate-progress-value'), translateProgressBar:$('translate-progress-bar')
+  };
+
+  /* ---------- dropdown modern ---------- */
+  function createModernSelect(select, { searchable = false, voice = false } = {}){
+    const shell = document.createElement('div');
+    shell.className = 'modern-select';
+    const trigger = document.createElement('button');
+    trigger.type = 'button';
+    trigger.className = 'modern-select-trigger';
+    trigger.setAttribute('aria-haspopup', 'listbox');
+    trigger.setAttribute('aria-expanded', 'false');
+    trigger.innerHTML = '<span class="modern-select-value"></span><span class="modern-select-chevron" aria-hidden="true"></span>';
+    const panel = document.createElement('div');
+    panel.className = 'modern-select-panel';
+    panel.hidden = true;
+    let search = null;
+    if (searchable) {
+      const searchWrap = document.createElement('div');
+      searchWrap.className = 'modern-select-search';
+      searchWrap.innerHTML = '<span aria-hidden="true">⌕</span>';
+      search = document.createElement('input');
+      search.type = 'search';
+      search.placeholder = voice ? 'Cari suara…' : 'Cari bahasa…';
+      search.setAttribute('aria-label', search.placeholder);
+      searchWrap.appendChild(search);
+      panel.appendChild(searchWrap);
+    }
+    const list = document.createElement('div');
+    list.className = 'modern-select-list';
+    list.setAttribute('role', 'listbox');
+    panel.appendChild(list);
+    select.insertAdjacentElement('afterend', shell);
+    shell.append(trigger, panel);
+    select.classList.add('native-select-hidden');
+
+    const close = () => {
+      shell.classList.remove('open');
+      panel.hidden = true;
+      trigger.setAttribute('aria-expanded', 'false');
+    };
+    const render = (query = '') => {
+      const term = query.trim().toLocaleLowerCase();
+      list.innerHTML = '';
+      [...select.options].filter(option => !term || option.textContent.toLocaleLowerCase().includes(term)).forEach(option => {
+        const item = document.createElement('button');
+        item.type = 'button';
+        item.className = 'modern-select-option';
+        item.setAttribute('role', 'option');
+        item.setAttribute('aria-selected', String(option.value === select.value));
+        const online = /\(online\)/i.test(option.textContent);
+        const cleanLabel = option.textContent.replace(/\s*\(online\)\s*/i, '');
+        item.innerHTML = '<span class="option-main"><strong></strong><small></small></span><span class="option-check" aria-hidden="true">✓</span>';
+        item.querySelector('strong').textContent = cleanLabel;
+        item.querySelector('small').textContent = voice ? (online ? 'Online · kualitas tinggi' : 'Tersedia di perangkat') : option.value;
+        if (online) item.querySelector('small').classList.add('online');
+        item.onclick = () => {
+          select.value = option.value;
+          select.dispatchEvent(new Event('change', { bubbles:true }));
+          refresh();
+          close();
+          trigger.focus();
+        };
+        list.appendChild(item);
+      });
+      if (!list.children.length) list.innerHTML = '<div class="modern-select-empty">Tidak ada hasil</div>';
+    };
+    const refresh = () => {
+      const selected = select.selectedOptions[0];
+      const valueNode = trigger.querySelector('.modern-select-value');
+      const online = selected && /\(online\)/i.test(selected.textContent);
+      const label = selected ? selected.textContent.replace(/\s*\(online\)\s*/i, '') : 'Memuat…';
+      valueNode.innerHTML = '<strong></strong><small></small>';
+      valueNode.querySelector('strong').textContent = label;
+      valueNode.querySelector('small').textContent = voice ? (online ? 'Online · direkomendasikan' : 'Suara perangkat') : 'Bahasa teks';
+      trigger.disabled = select.disabled;
+      render(search?.value || '');
+    };
+    trigger.onclick = () => {
+      const willOpen = panel.hidden;
+      document.querySelectorAll('.modern-select.open').forEach(node => {
+        if (node !== shell) node.querySelector('.modern-select-trigger')?.click();
+      });
+      shell.classList.toggle('open', willOpen);
+      panel.hidden = !willOpen;
+      trigger.setAttribute('aria-expanded', String(willOpen));
+      if (willOpen) {
+        render(search?.value || '');
+        requestAnimationFrame(() => (search || list.querySelector('[aria-selected="true"]'))?.focus());
+      }
+    };
+    search?.addEventListener('input', () => render(search.value));
+    select.addEventListener('change', refresh);
+    new MutationObserver(refresh).observe(select, { childList:true, subtree:true, attributes:true });
+    document.addEventListener('pointerdown', event => { if (!shell.contains(event.target)) close(); });
+    shell.addEventListener('keydown', event => { if (event.key === 'Escape') { close(); trigger.focus(); } });
+    refresh();
+    return { refresh, close };
+  }
+  const modernSelects = {
+    bahasa:createModernSelect(el.bahasa, { searchable:true }),
+    suara:createModernSelect(el.suara, { searchable:true, voice:true })
   };
 
   function setTranslationProgress(state, percent = 0){
@@ -157,7 +258,10 @@ function bootTtsApp() {
     const currentLang = el.bahasa.disabled ? null : el.bahasa.value;
     const currentVoice = el.suara.disabled ? null : el.suara.value;
     const prevLang = savedLang || currentLang;
-    const prevVoice = savedVoice || currentVoice;
+    // Migrasi satu kali: jadikan suara Google online sebagai default baru.
+    // Setelah migrasi, pilihan manual pengguna tetap disimpan dan dipulihkan.
+    const googleDefaultApplied = store.get('tts:google_default_applied', null) === '1';
+    const prevVoice = googleDefaultApplied ? (savedVoice || currentVoice) : null;
     el.bahasa.innerHTML = '';
     el.suara.innerHTML = '';
     if (!voices.length) {
@@ -190,6 +294,11 @@ function bootTtsApp() {
          langList[0]);
     el.bahasa.value = defLang;
     fillVoices(prevVoice);
+    if (!googleDefaultApplied) {
+      store.set('tts:google_default_applied', '1');
+      store.set('tts:bahasa', normalizeLocale(el.bahasa.value));
+      store.set('tts:suara', el.suara.value);
+    }
 
     const adaID = langList.some(l => normalizeLocale(l).startsWith('id'));
     el.notice.hidden = adaID;
@@ -279,8 +388,17 @@ function bootTtsApp() {
       o.value = v.name; o.textContent = v.name + (v.localService ? '' : ' (online)');
       el.suara.appendChild(o);
     });
-    if (prefer && list.some(v => v.name === prefer)) el.suara.value = prefer;
-    if (!el.suara.value && list.length) el.suara.selectedIndex = 0;
+    if (prefer && list.some(v => v.name === prefer)) {
+      el.suara.value = prefer;
+    } else {
+      // Utamakan Google online untuk setiap bahasa. Bila tidak tersedia,
+      // gunakan suara lokal/online pertama yang disediakan browser.
+      const googleOnline = list.find(v => /google/i.test(v.name) && !v.localService)
+        || list.find(v => /google/i.test(v.name));
+      if (googleOnline) el.suara.value = googleOnline.name;
+      else if (list.length) el.suara.selectedIndex = 0;
+    }
+    modernSelects.suara.refresh();
   }
 
   function applyDetectedLanguage(){
@@ -293,6 +411,9 @@ function bootTtsApp() {
       langList.find(l => normalizeLocale(l).startsWith('en'));
     if (!target || normalizeLocale(el.bahasa.value) === normalizeLocale(target)) return;
     el.bahasa.value = target;
+    // Perubahan value secara programatis tidak memicu event change.
+    // Segarkan combobox kustom agar label bahasa langsung mengikuti hasil deteksi.
+    modernSelects.bahasa.refresh();
     fillVoices();
     store.set('tts:bahasa', normalizeLocale(el.bahasa.value));
     store.set('tts:suara', el.suara.value);
@@ -308,7 +429,16 @@ function bootTtsApp() {
     voiceService.selectLanguage(el.bahasa.value, 'manual');
     voiceService.selectVoice(el.suara.value);
   };
-  el.suara.onchange = () => voiceService.selectVoice(el.suara.value);
+  el.suara.onchange = () => {
+    const selected = voiceService.selectVoice(el.suara.value);
+    // Sesi pemutaran menyimpan snapshot suara agar setiap kalimat konsisten.
+    // Perbarui snapshot tersebut ketika pengguna mengganti pilihan. Jika sedang
+    // berbicara, hentikan utterance lama lalu ulangi kalimat aktif dengan suara
+    // baru; jika dijeda, suara baru akan dipakai ketika dilanjutkan.
+    playbackVoice = selected.voice;
+    playbackLang = selected.lang;
+    if (state === 'playing') jumpTo(idx);
+  };
 
   /* ---------- kontrol kecepatan / nada / volume ---------- */
   const ctl = {
@@ -384,10 +514,13 @@ function bootTtsApp() {
     const t = el.teks.value;
     const w = t.trim() ? t.trim().split(/\s+/).length : 0;
     el.hitung.textContent = t.length.toLocaleString('id-ID') + ' karakter · ' + w.toLocaleString('id-ID') + ' kata';
-    // Deteksi otomatis hanya dipakai sebelum pengguna pernah memilih bahasa.
-    // Setelah pilihan tersimpan, refresh halaman harus mempertahankannya.
+    // Pilihan manual dipertahankan saat mengetik. Paste menandai teks sebagai
+    // dokumen baru sehingga bahasa sumber dideteksi ulang sebelum diterjemahkan.
     if (store.get('tts:bahasa_preference', 'detected') !== 'manual') applyDetectedLanguage();
   }
+  el.teks.addEventListener('paste', () => {
+    store.set('tts:bahasa_preference', 'detected');
+  });
   el.teks.addEventListener('input', () => {
     cancelActiveSession('Teks diubah.');
     updateCount();
@@ -420,7 +553,14 @@ function bootTtsApp() {
   updateTranslateMode();
 
   async function translateToIndonesian(text, onProgress){
-    const result = await translationService.translate(text, el.bahasa.value || 'en', (percent, sessionId) => {
+    // Gunakan hasil deteksi langsung sebagai bahasa sumber. Untuk teks pendek
+    // yang belum cukup kuat dideteksi dan select masih Indonesia, serahkan
+    // deteksi kepada penyedia terjemahan (`auto`) agar teks Inggris tidak
+    // dianggap sudah berbahasa Indonesia lalu dikembalikan tanpa terjemahan.
+    const detectedSource = detectLanguageByText(text);
+    const selectedSource = normalizeLocale(el.bahasa.value || '');
+    const sourceLanguage = detectedSource || (selectedSource.startsWith('id') ? 'auto' : selectedSource) || 'auto';
+    const result = await translationService.translate(text, sourceLanguage, (percent, sessionId) => {
       appState.transitionTranslation('loading', { progress:percent, sessionId });
       onProgress?.(percent);
     });
