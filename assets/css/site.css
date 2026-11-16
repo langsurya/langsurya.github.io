@@ -14,7 +14,8 @@ body:before{content:"";position:absolute;inset:0 0 auto;height:610px;background:
 .theme-toggle:hover{border-color:rgba(37,99,235,.25);color:var(--blue);transform:translateY(-1px)}
 .theme-icon{display:grid;place-items:center;width:22px;height:22px;border-radius:50%;background:#eef4ff;color:var(--blue);font-size:.9rem}
 .brand{display:flex;align-items:center;gap:11px;padding:4px 8px 4px 2px;color:var(--navy);font-size:1.04rem;font-weight:780;letter-spacing:-.025em;text-decoration:none}
-.brand-mark{display:grid;place-items:center;width:36px;height:36px;border-radius:12px;background:linear-gradient(145deg,#3478ff,#1745b5);color:#fff;font:800 1rem/1 Inter,"Segoe UI",sans-serif;box-shadow:0 8px 20px rgba(37,99,235,.28),inset 0 1px 0 rgba(255,255,255,.3);transition:transform .25s ease,box-shadow .25s ease}
+.brand-mark{display:grid;place-items:center;width:36px;height:36px;overflow:hidden;border:1px solid rgba(212,169,83,.35);border-radius:10px;background:#102b4b;box-shadow:0 8px 20px rgba(11,37,68,.25),inset 0 1px 0 rgba(255,255,255,.18);transition:transform .25s ease,box-shadow .25s ease}
+.brand-mark img{display:block;width:100%;height:100%;object-fit:cover}
 .brand:hover .brand-mark{transform:translateY(-2px) rotate(-4deg);box-shadow:0 12px 24px rgba(37,99,235,.34)}
 .main-nav{display:flex;align-items:center;gap:4px;padding:4px;border:1px solid rgba(20,32,51,.06);border-radius:14px;background:rgba(244,247,252,.72);font-size:.84rem;font-weight:680}
 .main-nav a{position:relative;display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:38px;padding:0 15px;border:0;border-radius:10px;color:#596579;text-decoration:none;white-space:nowrap;transition:color .22s ease,background .22s ease,box-shadow .22s ease,transform .22s ease}

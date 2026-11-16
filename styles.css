@@ -297,6 +297,14 @@ input[type=range]::-moz-range-thumb{
 .tts-page main{max-width:1240px}
 .tts-page header{margin-bottom:18px}
 .tts-page h1{font-size:clamp(1.65rem,3vw,2.15rem);letter-spacing:-.035em}
+.tts-nav a{display:inline-flex;align-items:center;gap:8px;padding:4px 10px 4px 4px;border-radius:9px}
+.tts-nav a:hover{background:color-mix(in srgb,var(--accent) 8%,transparent);text-decoration:none}
+.tts-nav img{width:24px;height:24px;border-radius:6px;object-fit:cover;box-shadow:0 2px 7px color-mix(in srgb,#000 20%,transparent)}
+.tts-nav-back{padding-left:8px;border-left:1px solid var(--line);color:var(--muted);font-size:.78rem;font-weight:550}
+.tts-header{position:relative}
+.tts-heading{display:flex;align-items:center;gap:15px;min-width:0}
+.tts-brand-logo{width:72px;height:72px;flex:none;border:1px solid color-mix(in srgb,var(--accent) 22%,var(--line));border-radius:16px;object-fit:cover;box-shadow:0 10px 25px color-mix(in srgb,#000 18%,transparent)}
+.tts-product-label{display:block;margin-bottom:2px;color:var(--accent);font-size:.64rem;font-weight:800;letter-spacing:.14em}
 .tts-card{padding:0;overflow:hidden;border-radius:20px;box-shadow:0 18px 60px color-mix(in srgb,var(--ink) 10%,transparent)}
 .tts-workspace{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);min-height:390px}
 .tts-source-pane,.tts-output-pane{min-width:0;padding:22px}
@@ -315,6 +323,7 @@ input[type=range]::-moz-range-thumb{
 .reader-empty{flex:1;display:grid;place-content:center;justify-items:center;text-align:center;gap:7px;min-height:250px;padding:28px;color:var(--muted);border:1px dashed color-mix(in srgb,var(--accent) 35%,var(--line));border-radius:14px}
 .reader-empty[hidden]{display:none}
 .reader-empty-icon{display:grid;place-items:center;width:54px;height:54px;margin-bottom:5px;border-radius:16px;background:color-mix(in srgb,var(--accent) 13%,var(--panel));color:var(--accent);font-weight:800;font-size:1.1rem}
+.reader-empty-icon img{width:38px;height:38px;border-radius:10px;object-fit:cover;box-shadow:0 5px 14px color-mix(in srgb,#000 18%,transparent)}
 .reader-empty strong{color:var(--ink);font-size:.95rem}
 .reader-empty span{max-width:300px;font-size:.82rem}
 .tts-output-pane .reader{flex:1;margin:0;max-height:330px;min-height:250px;padding:18px;border-style:solid;border-color:color-mix(in srgb,var(--accent) 24%,var(--line));border-radius:14px;background:color-mix(in srgb,var(--panel) 82%,transparent);font-size:.96rem;line-height:1.85}
@@ -390,6 +399,9 @@ input[type=range]::-moz-range-thumb{
   .tts-page .tts-nav{margin:0 4px 8px}
   .tts-page header{align-items:center;gap:8px;margin:0 4px 12px}
   .tts-page header>div{min-width:0}
+  .tts-heading{gap:10px}
+  .tts-brand-logo{width:52px;height:52px;border-radius:12px}
+  .tts-product-label{font-size:.56rem;letter-spacing:.11em}
   .tts-page h1{font-size:1.35rem}
   .tts-page .sub{font-size:.8rem;line-height:1.35}
   .tts-page #tema{flex:none;min-height:44px;padding:6px 10px}
@@ -439,6 +451,8 @@ input[type=range]::-moz-range-thumb{
 @media (max-width:380px){
   .tts-page{padding-right:6px;padding-left:6px}
   .tts-page header{align-items:flex-start}
+  .tts-brand-logo{width:46px;height:46px}
+  .tts-nav-back{display:none}
   .tts-page .sub{max-width:240px}
   .tts-source-pane,.tts-output-pane{padding:12px}
   .pane-heading{gap:7px}
