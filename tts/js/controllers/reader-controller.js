@@ -53,27 +53,88 @@ export function chunkText(text, max = 300) {
 
 export function createReaderController({ reader, empty, player, panel, windowRef = window, getLastUserScroll = () => 0, onSelect = () => {} }) {
   let spans = [];
+  let words = [];
   const render = (source, queue) => {
     reader.innerHTML = '';
     spans = [];
+    words = [];
     if (empty) empty.hidden = true;
     let position = 0;
     queue.forEach((item, index) => {
       if (item.start > position) reader.appendChild(document.createTextNode(source.slice(position, item.start)));
       const span = document.createElement('span');
-      span.textContent = item.text;
+      span.className = 'reader-chunk';
       span.title = 'Klik untuk membaca dari sini';
       span.onclick = () => onSelect(index);
+      const chunkWords = [];
+      const wordPattern = /\S+/g;
+      let wordPosition = 0;
+      let wordMatch;
+      while ((wordMatch = wordPattern.exec(item.text))) {
+        if (wordMatch.index > wordPosition) span.appendChild(document.createTextNode(item.text.slice(wordPosition, wordMatch.index)));
+        const word = document.createElement('span');
+        word.className = 'reader-word';
+        word.textContent = wordMatch[0];
+        word.dataset.start = String(wordMatch.index);
+        span.appendChild(word);
+        chunkWords.push(word);
+        wordPosition = wordMatch.index + wordMatch[0].length;
+      }
+      if (wordPosition < item.text.length) span.appendChild(document.createTextNode(item.text.slice(wordPosition)));
       reader.appendChild(span);
       spans.push(span);
+      words.push(chunkWords);
       position = item.end;
     });
     if (position < source.length) reader.appendChild(document.createTextNode(source.slice(position)));
     reader.hidden = false;
   };
-  const mark = index => spans.forEach((span, itemIndex) => { span.className = itemIndex < index ? 'done' : itemIndex === index ? 'now' : ''; });
-  const clear = () => spans.forEach(span => { span.className = ''; });
-  const complete = () => spans.forEach(span => { span.className = 'done'; });
+  const mark = index => spans.forEach((span, itemIndex) => {
+    span.className = 'reader-chunk ' + (itemIndex < index ? 'done' : itemIndex === index ? 'now' : '');
+    const chunkWords = words[itemIndex] || [];
+    for (const word of chunkWords) {
+      word.classList.remove('active');
+      if (itemIndex < index) word.classList.add('spoken');
+      else if (itemIndex > index) word.classList.remove('spoken');
+    }
+  });
+  const markWord = (index, charIndex) => {
+    words.forEach((chunkWords, itemIndex) => {
+      if (itemIndex !== index) {
+        for (const word of chunkWords) word.classList.remove('active');
+      }
+    });
+    const chunkWords = words[index] || [];
+    let active = null;
+    for (const word of chunkWords) {
+      word.classList.remove('spoken', 'active');
+      const start = Number(word.dataset.start);
+      if (start <= charIndex) active = word;
+    }
+    for (const word of chunkWords) {
+      const start = Number(word.dataset.start);
+      if (word === active) word.classList.add('active');
+      else if (active && start < Number(active.dataset.start)) word.classList.add('spoken');
+    }
+    if (!active || !panel?.hidden || Date.now() - getLastUserScroll() < 4000) return;
+    const activeRect = active.getBoundingClientRect();
+    const readerRect = reader.getBoundingClientRect();
+    const margin = Math.min(48, readerRect.height * 0.2);
+    if (activeRect.top < readerRect.top + margin || activeRect.bottom > readerRect.bottom - margin) {
+      reader.scrollBy({
+        top:(activeRect.top + activeRect.height / 2) - (readerRect.top + readerRect.height / 2),
+        behavior:'smooth'
+      });
+    }
+  };
+  const clear = () => {
+    spans.forEach(span => { span.className = 'reader-chunk'; });
+    words.flat().forEach(word => word.classList.remove('spoken', 'active'));
+  };
+  const complete = () => {
+    spans.forEach(span => { span.className = 'reader-chunk done'; });
+    words.flat().forEach(word => { word.classList.remove('active'); word.classList.add('spoken'); });
+  };
   const center = index => {
     const span = spans[index];
     if (!span || !panel?.hidden || Date.now() - getLastUserScroll() < 4000) return;
@@ -88,5 +149,5 @@ export function createReaderController({ reader, empty, player, panel, windowRef
     const middle = topEdge + (windowRef.innerHeight - topEdge) / 2;
     windowRef.scrollBy({ top:(spanRect.top + spanRect.height / 2) - middle, behavior:'smooth' });
   };
-  return Object.freeze({ render, mark, center, clear, complete, getSpans:() => [...spans] });
+  return Object.freeze({ render, mark, markWord, center, clear, complete, getSpans:() => [...spans] });
 }

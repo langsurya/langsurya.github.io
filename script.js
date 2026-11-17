@@ -691,9 +691,9 @@ function bootTtsApp() {
     });
   }
 
-  function say(text, onend, onerror, snapshot = speechSnapshot()){
+  function say(text, onend, onerror, onboundary, snapshot = speechSnapshot()){
     speechCancelled = false;
-    return speechService.speak(text, snapshot, onend, onerror);
+    return speechService.speak(text, snapshot, onend, onerror, onboundary);
   }
 
   function jumpTo(i){
@@ -716,7 +716,26 @@ function bootTtsApp() {
     remaining = estimateFrom(idx); showTime();
     el.status.textContent = '';
     if (myToken !== token) return;
+    let karaokeChar = 0;
+    let karaokeAt = performance.now();
+    let hasKaraokeBoundary = false;
+    const fallbackCps = CPS * (+el.kecepatan.value || 1);
+    readerController.markWord(idx, 0);
+    const karaokeTimer = setInterval(() => {
+      if (myToken !== token || state !== 'playing') {
+        clearInterval(karaokeTimer);
+        return;
+      }
+      // Setelah voice memberikan posisi kata yang sebenarnya, jangan lagi
+      // menebak maju. Estimasi waktu hanya dipakai untuk voice/browser yang
+      // sama sekali tidak menyediakan event boundary.
+      if (hasKaraokeBoundary) return;
+      const elapsed = (performance.now() - karaokeAt) / 1000;
+      const estimatedChar = karaokeChar + elapsed * fallbackCps;
+      readerController.markWord(idx, Math.floor(estimatedChar));
+    }, 90);
     say(queue[idx].text, () => {
+      clearInterval(karaokeTimer);
       if (myToken !== token) return;
       stalledRetries = 0;
       // Beri mesin suara online waktu singkat untuk menutup kanal kalimat
@@ -735,6 +754,7 @@ function bootTtsApp() {
       if (delay) chunkTimer = setTimeout(advance, delay);
       else advance();
     }, e => {
+      clearInterval(karaokeTimer);
       if (myToken !== token) return;
       if (e.error === 'stalled' && stalledRetries < 3) {
         stalledRetries++;
@@ -745,6 +765,14 @@ function bootTtsApp() {
       finish(e.error === 'stalled'
         ? 'Suara terhenti setelah 3 kali percobaan. Tekan Putar untuk melanjutkan.'
         : 'Terjadi kesalahan suara: ' + e.error);
+    }, event => {
+      if (myToken !== token || state !== 'playing') return;
+      const boundaryChar = event.charIndex || 0;
+      const boundaryAt = performance.now();
+      hasKaraokeBoundary = true;
+      karaokeChar = boundaryChar;
+      karaokeAt = boundaryAt;
+      readerController.markWord(idx, karaokeChar);
     });
   }
 
@@ -875,7 +903,7 @@ function bootTtsApp() {
     el.status.textContent = 'Menguji suara…';
     const selected = voiceService.snapshot(el.suara.value, el.bahasa.value);
     const snapshot = speechSnapshot(selected.voice, selected.lang);
-    say('Halo, ini contoh suara yang dipilih.', () => { el.status.textContent = ''; }, () => { el.status.textContent = 'Uji suara gagal.'; }, snapshot);
+    say('Halo, ini contoh suara yang dipilih.', () => { el.status.textContent = ''; }, () => { el.status.textContent = 'Uji suara gagal.'; }, null, snapshot);
   };
 
   window.addEventListener('beforeunload', cancelSpeech);

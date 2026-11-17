@@ -38,7 +38,7 @@ export function createSpeechService({ synth, Utterance, matchMedia, acronymPronu
     cancelled = true;
   }
 
-  function speak(text, options, onend, onerror) {
+  function speak(text, options, onend, onerror, onboundary) {
     const language = options.voice?.lang || options.lang || 'en-US';
     const clean = normalizeTextForSpeech(text, acronymPronunciations, language).replace(/^[\s"'“”‘’«(\[]+/, '');
     const mobile = matchMedia('(max-width: 600px)').matches;
@@ -69,7 +69,11 @@ export function createSpeechService({ synth, Utterance, matchMedia, acronymPronu
     };
 
     utterance.onstart = () => { started = true; lastActivity = Date.now(); };
-    utterance.onboundary = () => { hasBoundary = true; lastActivity = Date.now(); };
+    utterance.onboundary = event => {
+      hasBoundary = true;
+      lastActivity = Date.now();
+      onboundary?.(event);
+    };
     utterance.onend = done;
     utterance.onerror = event => {
       ended = true;

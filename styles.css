@@ -116,10 +116,13 @@ button.danger{color:var(--danger)}
 }
 .reader{white-space:pre-wrap;word-wrap:break-word}
 .reader[hidden]{display:none}
-.reader span{border-radius:4px;cursor:pointer;transition:background .2s,color .2s;box-decoration-break:clone;-webkit-box-decoration-break:clone}
-.reader span:hover{background:color-mix(in srgb,var(--accent) 15%,transparent)}
-.reader span.now{background:color-mix(in srgb,var(--accent) 28%,transparent);color:var(--ink);box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 28%,transparent)}
-.reader span.done{color:var(--muted)}
+.reader-chunk{border-radius:4px;cursor:pointer;box-decoration-break:clone;-webkit-box-decoration-break:clone}
+.reader-chunk:hover{background:color-mix(in srgb,var(--accent) 10%,transparent)}
+.reader-chunk.done{color:var(--muted)}
+.reader-chunk.now{background:color-mix(in srgb,var(--accent) 7%,transparent)}
+.reader-word{border-radius:3px;padding:1px 2px;margin:0 -2px;transition:background .12s,color .12s,box-shadow .12s,opacity .12s}
+.reader-word.spoken{color:var(--muted);opacity:.65}
+.reader-word.active{position:relative;z-index:1;background:var(--accent);color:var(--accent-ink);font-weight:700;box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 32%,transparent)}
 
 /* ---------- pemutar ---------- */
 .player{
