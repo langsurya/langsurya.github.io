@@ -11,8 +11,10 @@ export function chunkText(text, max = 300) {
     .replace(/(?:\b[A-Za-z]\.){2,}/g, abbreviation => abbreviation.replace(/\./g, protectedDot))
     // Angka desimal dan versi: 9.2, 22.23.4
     .replace(/(?<=\d)\.(?=\d)/g, protectedDot)
-    // Gelar/sapaan yang lazim bukan akhir kalimat.
-    .replace(/\b(?:Mr|Mrs|Ms|Dr|Prof|Sr|Jr|St|No)\.(?=\s+[A-Za-z])/gi, match =>
+    // Gelar, sapaan, dan singkatan umum yang bukan akhir kalimat.
+    // Perlindungan hanya diterapkan jika masih diikuti kata agar titik pada
+    // akhir kalimat tetap dapat menjadi batas yang benar.
+    .replace(/\b(?:Mr|Mrs|Ms|Dr|Prof|Sr|Jr|St|No|Mt|Gen|Gov|Lt|Col|Sgt|Capt|Rev|Hon|Pres|Sen|Rep|Supt|Dept|Univ|Assoc|Inc|Ltd|Co|Corp|vs|etc|approx|est)\.(?=\s+[A-Za-z])/gi, match =>
       match.replace('.', protectedDot)
     );
   const pattern = /[^.!?;:\n]+[.!?;:]*["'”’)\]]*/g;
@@ -34,21 +36,10 @@ export function chunkText(text, max = 300) {
     chunks.push({ start, end, text:source.slice(start, end) });
   }
 
-  // Satu utterance untuk setiap kalimat menambahkan jeda teknis antara
-  // onend dan synth.speak berikutnya, di luar jeda alami dari tanda titik.
-  // Gabungkan kalimat pendek sampai batas aman agar mesin suara sendiri yang
-  // mengatur intonasi titik, tetapi pertahankan potongan panjang maksimal.
-  const merged = [];
-  for (const chunk of chunks) {
-    const previous = merged[merged.length - 1];
-    if (previous && chunk.end - previous.start <= max) {
-      previous.end = chunk.end;
-      previous.text = source.slice(previous.start, previous.end);
-    } else {
-      merged.push({ ...chunk });
-    }
-  }
-  return merged;
+  // Pertahankan satu chunk untuk satu kalimat. Dengan demikian callback
+  // onend dari speech selalu memindahkan sorotan tepat ke kalimat berikutnya,
+  // walaupun voice online hanya mengirim sedikit event boundary.
+  return chunks;
 }
 
 export function createReaderController({ reader, empty, player, panel, windowRef = window, getLastUserScroll = () => 0, onSelect = () => {} }) {
@@ -99,31 +90,20 @@ export function createReaderController({ reader, empty, player, panel, windowRef
     }
   });
   const markWord = (index, charIndex) => {
+    // Posisi kata dari voice online tidak selalu lengkap atau tepat waktu.
+    // Gunakan kalimat sebagai unit visual yang stabil dan biarkan onend
+    // menentukan perpindahan ke kalimat berikutnya.
+    spans.forEach((span, itemIndex) => {
+      span.classList.toggle('sentence-active', itemIndex === index);
+    });
     words.forEach((chunkWords, itemIndex) => {
-      if (itemIndex !== index) {
-        for (const word of chunkWords) word.classList.remove('active');
+      for (const word of chunkWords) {
+        word.classList.remove('active');
+        if (itemIndex < index) word.classList.add('spoken');
+        else word.classList.remove('spoken');
       }
     });
-    const chunkWords = words[index] || [];
-    let activeIndex = -1;
-    for (let wordIndex = 0; wordIndex < chunkWords.length; wordIndex++) {
-      const word = chunkWords[wordIndex];
-      word.classList.remove('spoken', 'active');
-      const start = Number(word.dataset.start);
-      if (start <= charIndex) activeIndex = wordIndex;
-    }
-    if (activeIndex < 0 && chunkWords.length) activeIndex = 0;
-
-    // Boundary dari beberapa voice online dapat datang per frasa, bukan per
-    // kata. Sorot maksimal tiga kata mulai dari posisi boundary agar frasa
-    // yang sedang terdengar tetap tercakup tanpa menyorot terlalu jauh.
-    const activeEnd = Math.min(chunkWords.length, activeIndex + 3);
-    for (let wordIndex = 0; wordIndex < chunkWords.length; wordIndex++) {
-      const word = chunkWords[wordIndex];
-      if (wordIndex >= activeIndex && wordIndex < activeEnd) word.classList.add('active');
-      else if (wordIndex < activeIndex) word.classList.add('spoken');
-    }
-    const active = chunkWords[activeIndex];
+    const active = spans[index];
     if (!active || !panel?.hidden || Date.now() - getLastUserScroll() < 4000) return;
     const activeRect = active.getBoundingClientRect();
     const readerRect = reader.getBoundingClientRect();
