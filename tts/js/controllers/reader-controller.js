@@ -105,17 +105,25 @@ export function createReaderController({ reader, empty, player, panel, windowRef
       }
     });
     const chunkWords = words[index] || [];
-    let active = null;
-    for (const word of chunkWords) {
+    let activeIndex = -1;
+    for (let wordIndex = 0; wordIndex < chunkWords.length; wordIndex++) {
+      const word = chunkWords[wordIndex];
       word.classList.remove('spoken', 'active');
       const start = Number(word.dataset.start);
-      if (start <= charIndex) active = word;
+      if (start <= charIndex) activeIndex = wordIndex;
     }
-    for (const word of chunkWords) {
-      const start = Number(word.dataset.start);
-      if (word === active) word.classList.add('active');
-      else if (active && start < Number(active.dataset.start)) word.classList.add('spoken');
+    if (activeIndex < 0 && chunkWords.length) activeIndex = 0;
+
+    // Boundary dari beberapa voice online dapat datang per frasa, bukan per
+    // kata. Sorot maksimal tiga kata mulai dari posisi boundary agar frasa
+    // yang sedang terdengar tetap tercakup tanpa menyorot terlalu jauh.
+    const activeEnd = Math.min(chunkWords.length, activeIndex + 3);
+    for (let wordIndex = 0; wordIndex < chunkWords.length; wordIndex++) {
+      const word = chunkWords[wordIndex];
+      if (wordIndex >= activeIndex && wordIndex < activeEnd) word.classList.add('active');
+      else if (wordIndex < activeIndex) word.classList.add('spoken');
     }
+    const active = chunkWords[activeIndex];
     if (!active || !panel?.hidden || Date.now() - getLastUserScroll() < 4000) return;
     const activeRect = active.getBoundingClientRect();
     const readerRect = reader.getBoundingClientRect();
