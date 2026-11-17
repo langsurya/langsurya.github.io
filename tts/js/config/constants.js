@@ -23,4 +23,4 @@ export const SETTING_LIMITS = Object.freeze({
   volume: Object.freeze({ min: 0, max: 1, fallback: 1 })
 });
 
-export const MAX_HISTORY_ITEMS = 8;
+export const MAX_HISTORY_ITEMS = 5;
