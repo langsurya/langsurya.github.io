@@ -768,10 +768,6 @@ function bootTtsApp() {
       clearInterval(karaokeTimer);
       if (myToken !== token) return;
       stalledRetries = 0;
-      // Beri mesin suara online waktu singkat untuk menutup kanal kalimat
-      // sebelumnya. Pemanggilan speak() langsung dari onend kadang membuat
-      // awal kalimat berikutnya patah atau terdengar terbata-bata di desktop.
-      const delay = matchMedia('(max-width: 600px)').matches ? 0 : 120;
       const advance = () => {
         chunkTimer = null;
         if (myToken !== token) return;
@@ -781,8 +777,7 @@ function bootTtsApp() {
         }
         idx++; next(myToken);
       };
-      if (delay) chunkTimer = setTimeout(advance, delay);
-      else advance();
+      advance();
     }, e => {
       clearInterval(karaokeTimer);
       if (myToken !== token) return;
@@ -859,10 +854,12 @@ function bootTtsApp() {
     const original = el.teks.value.replace(/\r/g, '');
     if (!original.trim()){ el.status.textContent = 'Isi teks dulu sebelum memutar.'; el.teks.focus(); return; }
     if (state !== 'idle') return;
-    // Mode baca menjadi prioritas utama. Deteksi ulang bahasa sumber sebelum
-    // mengambil suara agar pilihan Indonesia yang tertinggal dari mode
-    // terjemahan versi lama tidak dipakai untuk teks original berbahasa lain.
-    applyDetectedLanguage();
+    // Deteksi bahasa sumber hanya boleh mengubah kontrol ketika mode ASLI.
+    // Pada mode ID, updateTranslateMode() sudah memilih bahasa dan suara
+    // Indonesia. Pemanggilan deteksi tanpa syarat sebelumnya mengembalikan
+    // dropdown ke English tepat saat tombol Putar ditekan, walaupun teks hasil
+    // terjemahan tetap dibacakan dengan playbackVoice Indonesia.
+    if (readMode() === 'original') applyDetectedLanguage();
     // PlayerController memiliki lifecycle sesi UI. Token lokal hanya menjaga
     // callback utterance/timer lama agar tidak dapat memajukan antrean baru.
     const startToken = ++token;

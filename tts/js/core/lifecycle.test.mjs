@@ -60,11 +60,11 @@ test('chunking keeps dotted abbreviations together for speech normalization', ()
   const chunks = chunkText(source);
   assert.deepEqual(
     chunks.map(item => item.text),
-    ['Expecting threats (e.g., weather or pre-flight checks).', 'Recognition follows.']
+    ['Expecting threats (e.g., weather or pre-flight checks). Recognition follows.']
   );
   assert.equal(
     normalizeTextForSpeech(chunks[0].text, {}, 'en-US'),
-    'Expecting threats, for example, weather or pre-flight checks.'
+    'Expecting threats, for example, weather or pre-flight checks. Recognition follows.'
   );
 });
 
@@ -72,14 +72,21 @@ test('chunking also preserves i.e. and similar initial abbreviations', () => {
   const source = 'Use the safer option (i.e., stop the operation). Continue afterward.';
   assert.deepEqual(
     chunkText(source).map(item => item.text),
-    ['Use the safer option (i.e., stop the operation).', 'Continue afterward.']
+    ['Use the safer option (i.e., stop the operation). Continue afterward.']
   );
 });
 
-test('each sentence remains a separate highlight and utterance', () => {
+test('adjacent sentences in one paragraph remain one continuous utterance', () => {
   assert.deepEqual(
     chunkText('First sentence. Second sentence. Third sentence.').map(item => item.text),
-    ['First sentence.', 'Second sentence.', 'Third sentence.']
+    ['First sentence. Second sentence. Third sentence.']
+  );
+});
+
+test('blank lines keep paragraphs as separate utterances', () => {
+  assert.deepEqual(
+    chunkText('First sentence. Second sentence.\n\nThird sentence.').map(item => item.text),
+    ['First sentence. Second sentence.', 'Third sentence.']
   );
 });
 
@@ -87,7 +94,7 @@ test('decimal versions and titles are not treated as sentence endings', () => {
   const source = 'Dr. Smith reviewed version 22.23.4. The result was 9.2 points.';
   assert.deepEqual(
     chunkText(source).map(item => item.text),
-    ['Dr. Smith reviewed version 22.23.4.', 'The result was 9.2 points.']
+    ['Dr. Smith reviewed version 22.23.4. The result was 9.2 points.']
   );
 });
 

@@ -1,4 +1,4 @@
-export function chunkText(text, max = 300) {
+export function chunkText(text, max = 600) {
   const source = String(text);
   const chunks = [];
   // Pencarian batas kalimat sebelumnya memotong teks pada setiap titik.
@@ -36,10 +36,24 @@ export function chunkText(text, max = 300) {
     chunks.push({ start, end, text:source.slice(start, end) });
   }
 
-  // Pertahankan satu chunk untuk satu kalimat. Dengan demikian callback
-  // onend dari speech selalu memindahkan sorotan tepat ke kalimat berikutnya,
-  // walaupun voice online hanya mengirim sedikit event boundary.
-  return chunks;
+  // Gabungkan kalimat berurutan dalam paragraf yang sama selama masih berada
+  // di bawah batas aman. Setiap chunk dahulu dibuat sebagai utterance
+  // tersendiri, sehingga onend/speak di antara dua kalimat menimbulkan jeda
+  // buatan dan kadang memotong awal kalimat berikutnya pada Google voice.
+  // Tanda baca di dalam gabungan tetap memberi jeda alami dari mesin suara.
+  const joined = [];
+  for (const chunk of chunks) {
+    const previous = joined[joined.length - 1];
+    const separator = previous ? source.slice(previous.end, chunk.start) : '';
+    const combinedLength = previous ? chunk.end - previous.start : 0;
+    if (previous && !/\n\s*\n/.test(separator) && combinedLength <= max) {
+      previous.end = chunk.end;
+      previous.text = source.slice(previous.start, previous.end);
+    } else {
+      joined.push({ ...chunk });
+    }
+  }
+  return joined;
 }
 
 export function createReaderController({ reader, empty, player, panel, windowRef = window, getLastUserScroll = () => 0, onSelect = () => {} }) {
