@@ -408,8 +408,8 @@ function bootTtsApp() {
     if (prefer && list.some(v => v.name === prefer)) {
       el.suara.value = prefer;
     } else {
-      // Utamakan Google online untuk setiap bahasa. Bila tidak tersedia,
-      // gunakan suara lokal/online pertama yang disediakan browser.
+      // Pertahankan perilaku awal: suara Google menjadi pilihan default bila
+      // tersedia, termasuk ketika mode bacaan ID mengganti bahasa ke Indonesia.
       const googleOnline = list.find(v => /google/i.test(v.name) && !v.localService)
         || list.find(v => /google/i.test(v.name));
       if (googleOnline) el.suara.value = googleOnline.name;
@@ -554,12 +554,42 @@ function bootTtsApp() {
   /* ---------- terjemahan ---------- */
   const readMode = () => el.modeBaca.querySelector('input[name="mode-baca"]:checked')?.value || 'original';
   const defaultModeInput = el.modeBaca.querySelector('input[value="original"]');
+  let originalLanguage = null;
+  let originalVoice = null;
   if (defaultModeInput) defaultModeInput.checked = true;
   function updateTranslateMode(){
     const mode = readMode();
     el.translateInfo.hidden = mode !== 'id';
     el.modeBaca.dataset.mode = mode;
-    // Bahasa pada select tetap bahasa sumber dan tidak diubah oleh mode baca.
+    if (mode === 'id') {
+      if (!originalLanguage) {
+        originalLanguage = el.bahasa.value;
+        originalVoice = el.suara.value;
+      }
+      const indonesianLanguage = [...el.bahasa.options]
+        .map(option => option.value)
+        .find(language => normalizeLocale(language).startsWith('id'));
+      if (indonesianLanguage) {
+        el.bahasa.value = indonesianLanguage;
+        fillVoices();
+        modernSelects.bahasa.refresh();
+        store.set('tts:bahasa', normalizeLocale(indonesianLanguage));
+        store.set('tts:suara', el.suara.value);
+      }
+    } else if (originalLanguage) {
+      const restoredLanguage = [...el.bahasa.options]
+        .map(option => option.value)
+        .find(language => normalizeLocale(language) === normalizeLocale(originalLanguage));
+      if (restoredLanguage) {
+        el.bahasa.value = restoredLanguage;
+        fillVoices(originalVoice);
+        modernSelects.bahasa.refresh();
+        store.set('tts:bahasa', normalizeLocale(restoredLanguage));
+        store.set('tts:suara', el.suara.value);
+      }
+      originalLanguage = null;
+      originalVoice = null;
+    }
   }
   el.modeBaca.addEventListener('change', () => {
     const wasActive = state !== 'idle';
@@ -756,9 +786,24 @@ function bootTtsApp() {
     }, e => {
       clearInterval(karaokeTimer);
       if (myToken !== token) return;
+      if (e.error === 'stalled' && playbackVoice && !playbackVoice.localService) {
+        const localFallback = voices.find(voice =>
+          voice.localService && normalizeLocale(voice.lang) === normalizeLocale(playbackLang || playbackVoice.lang)
+        );
+        if (localFallback) {
+          playbackVoice = localFallback;
+          playbackLang = localFallback.lang;
+          stalledRetries = 0;
+          el.status.textContent = 'Suara online terputus. Beralih ke ' + localFallback.name + ' yang tersedia di perangkat…';
+          jumpTo(idx);
+          return;
+        }
+      }
       if (e.error === 'stalled' && stalledRetries < 3) {
         stalledRetries++;
-        el.status.textContent = 'Suara terputus oleh Chrome. Mencoba menyambungkan kembali…';
+        el.status.textContent = playbackVoice?.localService
+          ? 'Mesin suara perangkat berhenti. Mencoba melanjutkan…'
+          : 'Suara online atau jaringan terputus. Mencoba menyambungkan kembali…';
         jumpTo(idx);
         return;
       }
