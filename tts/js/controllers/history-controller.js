@@ -1,4 +1,4 @@
-export function createHistoryController({ storage, limit = 8, onChange = () => {} }) {
+export function createHistoryController({ storage, limit = 5, onChange = () => {} }) {
   let items = storage.getHistory();
   const emit = () => onChange([...items]);
   return Object.freeze({
