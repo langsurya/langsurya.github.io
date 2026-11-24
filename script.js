@@ -961,6 +961,16 @@ function bootTtsApp() {
   el.bersih.onclick = () => { el.teks.value = ''; updateCount(); el.teks.focus(); };
 
   /* ---------- riwayat ---------- */
+  function formatHistoryDate(createdAt){
+    if (!createdAt) return 'Riwayat lama';
+    const date = new Date(createdAt);
+    if (Number.isNaN(date.getTime())) return 'Tanggal tidak tersedia';
+    return new Intl.DateTimeFormat('id-ID', {
+      dateStyle:'medium',
+      timeStyle:'short'
+    }).format(date);
+  }
+
   function renderHistory(history){
     el.riwayat.innerHTML = '';
     if (!history.length){
@@ -968,12 +978,20 @@ function bootTtsApp() {
       li.className = 'empty'; li.textContent = 'Belum ada. Teks yang pernah diputar akan muncul di sini.';
       el.riwayat.appendChild(li); return;
     }
-    history.forEach((h, i) => {
+    history.forEach((item, i) => {
       const li = document.createElement('li');
       const b = document.createElement('button');
-      const firstLine = h.split(/\r?\n/).find(line => line.trim()) || h;
-      b.className = 'txt'; b.type = 'button'; b.textContent = firstLine.trim(); b.title = h;
-      b.onclick = () => { el.teks.value = h; updateCount(); el.teks.focus(); };
+      const firstLine = item.text.split(/\r?\n/).find(line => line.trim()) || item.text;
+      const title = document.createElement('span');
+      title.className = 'history-item__title';
+      title.textContent = firstLine.trim();
+      const date = document.createElement('time');
+      date.className = 'history-item__datetime';
+      date.textContent = formatHistoryDate(item.createdAt);
+      date.dateTime = item.createdAt || '';
+      b.className = 'txt'; b.type = 'button'; b.title = item.text;
+      b.append(title, date);
+      b.onclick = () => { el.teks.value = item.text; updateCount(); el.teks.focus(); };
       const d = document.createElement('button');
       d.className = 'small'; d.type = 'button'; d.textContent = 'Hapus';
       d.setAttribute('aria-label', 'Hapus dari riwayat');
