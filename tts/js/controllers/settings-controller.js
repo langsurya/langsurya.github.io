@@ -5,8 +5,9 @@ export function createSettingsController({ controls, storage, appState, formatte
     const text = formatters[name](value);
     control.setAttribute('aria-valuetext', text);
     storage.setSetting(name, value);
-    const stateNames = { kecepatan:'rate', nada:'pitch', volume:'volume' };
-    appState.updateSettings({ [stateNames[name]]:value });
+    if (name === 'rate' || name === 'pitch' || name === 'volume') {
+      appState.updateSettings({ [name]:value });
+    }
     return text;
   };
   return Object.freeze({ render });

@@ -1,4 +1,4 @@
-export function chunkText(text, max = 600) {
+export function chunkText(text, max = 260) {
   const source = String(text);
   const chunks = [];
   // Pencarian batas kalimat sebelumnya memotong teks pada setiap titik.

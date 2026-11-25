@@ -338,7 +338,7 @@ input[type=range]::-moz-range-thumb{
 .reader-empty-icon img{width:38px;height:38px;border-radius:10px;object-fit:cover;box-shadow:0 5px 14px color-mix(in srgb,#000 18%,transparent)}
 .reader-empty strong{color:var(--ink);font-size:.95rem}
 .reader-empty span{max-width:300px;font-size:.82rem}
-.tts-output-pane .reader{flex:1;margin:0;max-height:330px;min-height:250px;padding:18px;border-style:solid;border-color:color-mix(in srgb,var(--accent) 24%,var(--line));border-radius:14px;background:color-mix(in srgb,var(--panel) 82%,transparent);font-size:.96rem;line-height:1.85}
+.tts-output-pane .reader{flex:1;margin:0;max-height:330px;min-height:250px;padding:18px;border-style:solid;border-color:color-mix(in srgb,var(--accent) 24%,var(--line));border-radius:14px;background:color-mix(in srgb,var(--panel) 82%,transparent);font-size:calc(.96rem * var(--reader-scale,1));line-height:1.85}
 .tts-toolbar{padding:18px 22px;border-top:1px solid var(--line);background:color-mix(in srgb,var(--bg) 38%,var(--panel))}
 .tts-toolbar .grid{margin:0;grid-template-columns:minmax(150px,.75fr) minmax(250px,1.35fr) minmax(175px,.82fr)}
 .tts-toolbar .grid>div{padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--panel);transition:border-color .18s,background-color .18s,box-shadow .18s}
@@ -429,7 +429,7 @@ input[type=range]::-moz-range-thumb{
   .source-actions .small{min-height:44px;padding:7px 11px;font-size:.8rem}
   .reader-empty{min-height:150px;padding:18px 16px}
   .reader-empty-icon{width:46px;height:46px;border-radius:14px}
-  .tts-output-pane .reader{min-height:150px;max-height:260px;padding:14px;font-size:.91rem;line-height:1.7}
+  .tts-output-pane .reader{min-height:150px;max-height:260px;padding:14px;font-size:calc(.91rem * var(--reader-scale,1));line-height:1.7}
   .tts-toolbar{padding:8px 12px}
   .tts-toolbar .grid{display:grid;grid-template-columns:44px 44px minmax(0,1fr);align-items:center;gap:7px}
   .tts-toolbar .grid>div,

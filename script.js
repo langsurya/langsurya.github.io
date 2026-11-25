@@ -50,7 +50,7 @@ function bootTtsApp() {
   const $ = id => document.getElementById(id);
   const el = {
     teks:$('teks'), hitung:$('hitung'), bahasa:$('bahasa'), suara:$('suara'),
-    kecepatan:$('kecepatan'), nada:$('nada'), volume:$('volume'),
+    rate:$('rate'), pitch:$('pitch'), volume:$('volume'), textSize:$('text-size'),
     putar:$('putar'), berhenti:$('berhenti'), uji:$('uji'),
     player:$('player'), pLabel:$('p-label'), pCount:$('p-count'), pBar:$('p-bar'),
     mundur:$('mundur'), maju:$('maju'), pTime:$('p-time'),
@@ -200,8 +200,8 @@ function bootTtsApp() {
   const storage = createStorageService();
   const appState = createAppState({
     settings: {
-      rate: storage.getSetting('kecepatan'),
-      pitch: storage.getSetting('nada'),
+      rate: storage.getSetting('rate'),
+      pitch: storage.getSetting('pitch'),
       volume: storage.getSetting('volume')
     }
   });
@@ -214,9 +214,10 @@ function bootTtsApp() {
         'tts:bahasa': () => storage.getLanguage(),
         'tts:bahasa_preference': () => storage.getLanguagePreference(),
         'tts:suara': () => storage.getVoice(),
-        'tts:kecepatan': () => storage.getSetting('kecepatan'),
-        'tts:nada': () => storage.getSetting('nada'),
+        'tts:kecepatan': () => storage.getSetting('rate'),
+        'tts:nada': () => storage.getSetting('pitch'),
         'tts:volume': () => storage.getSetting('volume'),
+        'tts:ukuran-teks': () => storage.getSetting('textSize'),
         'tts:riwayat': () => storage.getHistory()
       };
       const value = readers[key]?.();
@@ -229,9 +230,10 @@ function bootTtsApp() {
         'tts:bahasa': () => storage.setLanguage(value),
         'tts:bahasa_preference': () => storage.setLanguagePreference(value),
         'tts:suara': () => storage.setVoice(value),
-        'tts:kecepatan': () => storage.setSetting('kecepatan', value),
-        'tts:nada': () => storage.setSetting('nada', value),
+        'tts:kecepatan': () => storage.setSetting('rate', value),
+        'tts:nada': () => storage.setSetting('pitch', value),
         'tts:volume': () => storage.setSetting('volume', value),
+        'tts:ukuran-teks': () => storage.setSetting('textSize', value),
         'tts:riwayat': () => storage.setHistory(value)
       };
       return writers[key]?.() ?? false;
@@ -457,11 +459,12 @@ function bootTtsApp() {
     if (state === 'playing') jumpTo(idx);
   };
 
-  /* ---------- kontrol kecepatan / nada / volume ---------- */
+  /* ---------- kontrol pengaturan suara dan tampilan ---------- */
   const ctl = {
-    kecepatan:{ def:1, fmt:v => (+v.toFixed(2)) + '×' },
-    nada:     { def:1, fmt:v => v < 0.95 ? 'Rendah ' + v.toFixed(1) : v > 1.05 ? 'Tinggi ' + v.toFixed(1) : 'Normal' },
-    volume:   { def:1, fmt:v => Math.round(v * 100) + '%' }
+    rate:     { def:1, fmt:v => (+v.toFixed(2)) + '×' },
+    pitch:    { def:1, fmt:v => v < 0.95 ? 'Rendah ' + v.toFixed(1) : v > 1.05 ? 'Tinggi ' + v.toFixed(1) : 'Normal' },
+    volume:   { def:1, fmt:v => Math.round(v * 100) + '%' },
+    textSize: { def:1, fmt:v => Math.round(v * 100) + '%' }
   };
   const near = (a, b) => Math.abs(a - b) < 1e-6;
   const settingsController = createSettingsController({
@@ -487,8 +490,9 @@ function bootTtsApp() {
     });
     const reset = document.querySelector('.reset[data-target="' + k + '"]');
     if (reset) reset.hidden = near(v, ctl[k].def);
+    if (k === 'textSize') el.reader.style.setProperty('--reader-scale', v);
     if (el.aturInfo) el.aturInfo.textContent =
-      ctl.kecepatan.fmt(+el.kecepatan.value) + ' · ' + ctl.volume.fmt(+el.volume.value);
+      ctl.rate.fmt(+el.rate.value) + ' · ' + ctl.volume.fmt(+el.volume.value);
   }
 
   function setVal(k, v){
@@ -499,9 +503,17 @@ function bootTtsApp() {
   }
 
   Object.keys(ctl).forEach(k => {
-    const saved = store.get('tts:' + k, null);
-    if (saved !== null) el[k].value = saved;
-    el[k].addEventListener('input', () => render(k));
+    const storageKeys = {
+      rate:'tts:kecepatan',
+      pitch:'tts:nada',
+      volume:'tts:volume',
+      textSize:'tts:ukuran-teks'
+    };
+    const storageKey = storageKeys[k];
+    const saved = store.get(storageKey, null);
+    const control = el[k];
+    if (saved !== null) control.value = saved;
+    control.addEventListener('input', () => render(k));
     render(k);
   });
 
@@ -680,13 +692,13 @@ function bootTtsApp() {
   });
 
   /* ---------- countdown sisa waktu ---------- */
-  const CPS = 14; // perkiraan karakter per detik pada kecepatan 1×
+  const CPS = 14; // Estimated characters per second at 1x rate.
   let remaining = 0, clock = null;
   const fmtTime = s => { s = Math.max(0, Math.ceil(s)); return String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0'); };
   function estimateFrom(i){
     let chars = 0;
     for (let k = i; k < queue.length; k++) chars += queue[k].text.length;
-    return chars / (CPS * (+el.kecepatan.value || 1));
+    return chars / (CPS * (+el.rate.value || 1));
   }
   function showTime(){ el.pTime.textContent = queue.length ? '-' + fmtTime(remaining) : '--:--'; }
   function startClock(){
@@ -694,7 +706,7 @@ function bootTtsApp() {
     clock = setInterval(() => { remaining = Math.max(0, remaining - 1); showTime(); }, 1000);
   }
   function stopClock(){ clearInterval(clock); clock = null; }
-  el.kecepatan.addEventListener('input', () => { if (state !== 'idle'){ remaining = estimateFrom(idx); showTime(); } });
+  el.rate.addEventListener('input', () => { if (state !== 'idle'){ remaining = estimateFrom(idx); showTime(); } });
 
   /* ---------- skip mundur / maju (per kalimat) ---------- */
   function skip(dir){
@@ -715,8 +727,8 @@ function bootTtsApp() {
     return Object.freeze({
       voice,
       lang:lang || voice?.lang || el.bahasa.value || 'en-US',
-      rate:+el.kecepatan.value,
-      pitch:+el.nada.value,
+      rate:+el.rate.value,
+      pitch:+el.pitch.value,
       volume:+el.volume.value
     });
   }
@@ -749,7 +761,7 @@ function bootTtsApp() {
     let karaokeChar = 0;
     let karaokeAt = performance.now();
     let hasKaraokeBoundary = false;
-    const fallbackCps = CPS * (+el.kecepatan.value || 1);
+    const fallbackCps = CPS * (+el.rate.value || 1);
     readerController.markWord(idx, 0);
     const karaokeTimer = setInterval(() => {
       if (myToken !== token || state !== 'playing') {
