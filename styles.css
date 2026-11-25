@@ -508,11 +508,17 @@ input[type=range]::-moz-range-thumb{
 
 @media (max-width:600px){
   .controls{
-    left:0;right:0;bottom:0;width:auto;max-height:70vh;
-    border-radius:16px 16px 0 0;padding:14px calc(14px + env(safe-area-inset-right)) calc(14px + env(safe-area-inset-bottom)) calc(14px + env(safe-area-inset-left));
+    left:0;right:0;bottom:0;width:auto;max-height:82vh;gap:10px;
+    border-radius:16px 16px 0 0;padding:12px calc(12px + env(safe-area-inset-right)) calc(12px + env(safe-area-inset-bottom)) calc(12px + env(safe-area-inset-left));
   }
-  .controls .step{width:44px;height:44px}
-  .controls .chip{min-height:44px;padding:5px 12px}
+  .controls .ctl{padding:8px 0;border-top:1px solid var(--line)}
+  .controls .ctl:first-of-type{border-top:0}
+  .controls .ctl-head{margin-bottom:4px}
+  .controls .ctl-row{gap:8px}
+  .controls .step{width:40px;height:40px;flex:0 0 40px}
+  .controls .presets{display:none}
+  .controls .ctl:last-child{order:-1}
+  .panel-head{position:sticky;top:-12px;z-index:1;padding:4px 0 8px;background:var(--panel)}
   #atur{grid-column:5;grid-row:2;min-height:44px;padding:8px 10px;font-size:.82rem}
 }
 
@@ -527,7 +533,7 @@ input[type=range]::-moz-range-thumb{
 }
 @supports (height:100dvh){
   .controls{max-height:calc(100dvh - 32px)}
-  @media (max-width:600px){.controls{max-height:70dvh}}
+  @media (max-width:600px){.controls{max-height:82dvh}}
 }
 
 @media (max-width:600px) and (orientation:landscape){

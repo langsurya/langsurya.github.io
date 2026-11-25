@@ -27,6 +27,17 @@ export function normalizeTranslatedHyphens(text) {
   return String(text).replace(/(\p{L})\s*-\s*(?=\p{L})/gu, '$1-');
 }
 
+export function isUnchangedTranslation(source, translated) {
+  const normalize = value => String(value)
+    .normalize('NFKC')
+    .toLocaleLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .trim();
+  const original = normalize(source);
+  const result = normalize(translated);
+  return original.length >= 12 && original === result;
+}
+
 function abortError(reason = 'Proses penerjemahan dibatalkan') {
   return new TranslationError(reason, 'ABORTED');
 }
@@ -66,7 +77,8 @@ export function createTranslationService({ fetchImpl = window.fetch.bind(window)
       if (response.ok) {
         const data = await response.json();
         if (data.responseStatus === 200 && data.responseData?.translatedText) {
-          return normalizeTranslatedHyphens(data.responseData.translatedText);
+          const translatedText = normalizeTranslatedHyphens(data.responseData.translatedText);
+          if (!isUnchangedTranslation(content, translatedText)) return translatedText;
         }
       }
     } catch (error) {

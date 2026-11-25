@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createAppState } from './app-state.js';
 import { createTranslationLifecycle } from '../app.js';
+import { isUnchangedTranslation } from '../services/translation-service.js';
 import { detectLanguageByText, shouldApplyDetectedLanguage, snapshotSelectedVoice } from '../services/voice-service.js';
 import { createWakeLockService } from '../services/wake-lock-service.js';
 import { normalizeTextForSpeech } from '../services/speech-service.js';
@@ -130,6 +131,23 @@ test('English prose is detected as English before Indonesian translation', () =>
 
 test('short English text remains eligible for provider auto detection', () => {
   assert.equal(detectLanguageByText('Hello, how are you?'), null);
+});
+
+test('translation detects a provider response that leaves prose unchanged', () => {
+  assert.equal(
+    isUnchangedTranslation(
+      'People usually get to know each other better.',
+      'People usually get to know each other better.'
+    ),
+    true
+  );
+  assert.equal(
+    isUnchangedTranslation(
+      'People usually get to know each other better.',
+      'Orang biasanya menjadi lebih mengenal satu sama lain.'
+    ),
+    false
+  );
 });
 
 test('voice test snapshots the current selected voice', () => {
