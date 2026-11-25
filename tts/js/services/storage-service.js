@@ -32,9 +32,18 @@ function numberInRange(value, limits) {
 function validHistory(value) {
   if (!Array.isArray(value)) return [];
   return value
-    .filter(isString)
-    .map(item => item.trim())
-    .filter(Boolean)
+    .map(item => {
+      if (isString(item)) return item.trim();
+      if (!item || typeof item !== 'object' || !isString(item.text)) return null;
+
+      const text = item.text.trim();
+      if (!text) return null;
+      return {
+        text,
+        createdAt:isString(item.createdAt) ? item.createdAt : null
+      };
+    })
+    .filter(item => item !== null && item !== '')
     .slice(0, MAX_HISTORY_ITEMS);
 }
 
